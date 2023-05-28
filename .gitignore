@@ -8,6 +8,7 @@ immobot/
 __pycache__/
 *.py[cod]
 *$py.class
+/.vscode
 
 # C extensions
 *.so
@@ -107,5 +108,11 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# message text file
+message.txt
+
+# login credentials
+*.json
 
 # End of https://www.gitignore.io/api/python

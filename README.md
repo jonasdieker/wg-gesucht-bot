@@ -2,7 +2,16 @@
 
 **Support and bug fixes for immoscout24 are needed. Currently the script only works properly for wg-gesucht.de**
 
-Now you need to put your message to the landlord in a file named "message.txt" instead of in the script. 
+Now you need to put your message to the landlord in a file named "message.txt" instead of in the script.
+ 
+Also put your email and password in a JSON file:
+
+```
+{
+    "email": "my-email@gmail.com",
+    "password": "password1234"
+}
+```
 
 ## Introduction
 
