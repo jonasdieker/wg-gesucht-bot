@@ -6,6 +6,8 @@ from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.action_chains import ActionChains
 
+WAIT_TIME = 20
+
 
 def get_login_credentials():
     with open("login-creds.json", "r") as f:
@@ -24,7 +26,7 @@ def submit_app(ref):
     # create the ChromeDriver object
     driver = webdriver.Chrome("/usr/local/bin/chromedriver", options=chrome_options)
     driver.get("https://www.wg-gesucht.de/nachricht-senden/" + ref)
-    driver.implicitly_wait(10)
+    driver.implicitly_wait(WAIT_TIME)
     accept_button = driver.find_elements(
         "xpath", "//*[contains(text(), 'Accept all')]"
     )[0]
@@ -33,17 +35,17 @@ def submit_app(ref):
         0
     ]
     konto_button.click()
-    driver.implicitly_wait(5)
+    driver.implicitly_wait(WAIT_TIME)
     email = driver.find_element("id", "login_email_username")
     email.send_keys(creds["email"])
-    driver.implicitly_wait(5)
+    driver.implicitly_wait(WAIT_TIME)
     passwd = driver.find_element("id", "login_password")
     passwd.send_keys(creds["password"])
-    driver.implicitly_wait(5)
+    driver.implicitly_wait(WAIT_TIME)
     login_button1 = driver.find_element("id", "login_submit")
-    driver.implicitly_wait(5)
+    driver.implicitly_wait(WAIT_TIME)
     login_button1.click()
-    driver.implicitly_wait(5)
+    driver.implicitly_wait(WAIT_TIME)
     try:
         se_button1 = driver.find_element("id", "sicherheit_bestaetigung")
         se_button1.click()
@@ -74,7 +76,7 @@ def submit_app(ref):
         return 0
 
     # driver.implicitly_wait(10)
-    time.sleep(5)  # may not be required
+    time.sleep(WAIT_TIME)  # may not be required
     try:
         submit_button = driver.find_element(
             "xpath",
