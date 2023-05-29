@@ -1,176 +1,88 @@
-# Automatic Wohnung Search Bot 
+# WG-Gesucht Bot 
+*Let's face it, looking for a new WG is a pain, so why not just automate the process?*
 
-**Support and bug fixes for immoscout24 are needed. Currently the script only works properly for wg-gesucht.de**
+Thanks to the code by [nickirk](https://github.com/nickirk/immo), which served as a starting point for this project.
 
-Now you need to put your message to the landlord in a file named "message.txt" instead of in the script.
- 
-Also put your email and password in a JSON file:
+## Getting Started
 
+### 1 Create virtual environment and install Python packages
+
+```bash
+python -m venv .env
+source .env/bin/activate
+pip install -r requirements.txt
 ```
+
+### 2 Ensure `chromedriver` is installed
+
+Running `which chromedriver` should return a path like `/usr/local/bin/chromedriver`.
+
+If not simply run `sudo apt-get install chromedriver` if on Ubuntu.
+
+Alternatively run `sudo apt-get install chromium-chromedriver` if on Raspberry OS.
+`
+
+### 3 Enter your email and password for WG-Gesucht into `login-creds.json`
+
+```json
 {
     "email": "my-email@gmail.com",
     "password": "password1234"
 }
 ```
 
-## Introduction
+### 4 Write message into `message.txt`
 
-Looking for a flat in big cities can be a pain in the eye (ass) due to many different reasons, e.g. you are a student and many landlords don't like students; or you don't speak German so well and landlords, most of who are in their old ages, cannot speak English so well; or there are just simply too many people looking for a nice flat, whenever a new offer apears online the landlord will receive tons of applications and they have nothing to do but to choose the first ones who sent them the applications. So making sure that your application always apear among the first emails in the landlords' inbox is crucial to get you a chance to visit the apartment. I learned the lesson in a hard way by spending a lot of my time online monitoring the updates of apartment offers on [immobilienscout](!https://www.immobilienscout24.de/), [wg-gesucht](!https://www.wg-gesucht.de/wohnungen-in-Stuttgart.124.2.0.0.html) or [ebay](!https://www.ebay-kleinanzeigen.de/stadt/stuttgart/) everyday, but in the end almost all of my inquiries went straight into the vacuum and never got an echo back. After somedays, I realised that maybe it is true that there are too many people online looking for a flat, and my messages are just among the tons of messages the landlords receive, so to increase my chance, I need to send messages as soon as the offer is put online. So I wrote a Bot in Python to monitor the website immobilienscout every minute, once it finds new offers it will send my message, including some information about ourselves, to the landlord automatically. Basically the whole process won't take more than 2 minutes since the offer is put online. 
+### 5 Add your complete search URL into `wg-gesucht-spider.py`
 
-~~I think immobilienscout has the most number of new offers everyday, that's why I chose to monitor it. In principle we can make the Bot to monitor other websites, too.~~
+Just go to the website, enter all your filter requirements, apply filter and simply copy the url you get.
 
-Update 22.04.2019: *Now it is also working on wg-gesucht.de, too.* Actually, that's where I found my current apartment using 
-the script. On immobilienscout, there are many offers, yes. But unless you are one of the guys with a high income job or you 
-are married, your chance of getting a offer is diminishingly low. From my experience, wg-gesucht is more friendly to students and they responded to my report of a fraud on their website very quickly.
+### 6 Run **scrapy** to setup the bot structure
 
-The way to use it is almost the same as the old script. Just the names of the scripts are different. Things to pay attention to are:
+``` bash
+scrapy startproject bot
+```
 
-0. the corresponding files are 
-	- immo.py --> wg-gesucht.py
-	- submit.py --> submit_wg.py
-	- immo_spider.py --> wg-gesucht-spider.py
-1. wg-gesucht.de asks for your username and password, which you need to write in the places in the submit_wg.py script.
-2. immobilienscout now implements a premium feature which will break down the code but I did not take care to handle, 
-due to reasons already stated in above.
-3. speaking German increases your chance of getting a offer. Try to force yourself speaking German. :)
-4. please don't abuse the script by sending requests too frequently to the website, otherwise they could take some anti-measures to rule out the bot, which is bad for everyone who wants to look for a flat using the bot.
-5. The script can be run on raspberry pi 3b. Some more questions please see (closed) issues before you open a new issue. Thanks. 
+After this you should have a new folder called `bot` with a strucuture like:
 
-Good luck to your wohnung hunt.
+    bot/
+        scrapy.cfg            # deploy configuration file
+        bot/                  # project's Python module, you'll import your code from here
+            __init__.py
+            items.py          # project items definition file
+            pipelines.py      # project pipelines file
+            settings.py       # project settings file
+            spiders/          # a directory where you'll later put your spiders
+                __init__.py
 
+### 7 Run bash script `create_symlinks.sh`
 
-### Requirement
+```terminal
+bash create_symlinks.sh
+```
 
-I have only tested the Bot on Linux (Debian, Ubuntu) and Mac. I am not sure about whether you can do some tricks and make it work on Windows, too. But worth trying.
+After the folder structure should look like this:
 
-1. chromedriver. I take chrome as an example since it is my favorite browser, but you can also use other popular browsers because you can find their *driver*s. You need to have chrome installed. 
-
-   On Linux use the followling command to check if you have chromedriver installed
-
-   `which chromedriver`
-
-   if it is installed, then something like the following which tells you the path to the driver should appear
-
-   `/usr/local/bin/chromedriver` 
-
-   if nothing appears, then you need to install chromedriver, using the following command on Linux (Debian or Ubuntu),
-
-   `sudo apt-get install chromedriver`
-
-   and use the following command on Mac (if you use [homebrew](!https://brew.sh/)),
-
-   `brew install chromedriver`
-
-2. Tested only with Python 2.7, there might be some syntax errors with Python 3 in the print function. The solution is just to write all print functions with parentheses.
-
-3. [Scrapy](!https://scrapy.org/), which is a package based on Python for writing web spiders. After/if you have python installed, then the following command should install *Scrapy* for you
-
-   `pip install scrapy`
-
-### Files
-
-There are just 3 python scripts. 
-
-`immo.py`
-
-`immo_spider.py`
-
-`submit.py`
-
-Get the scripts by 
-
-`git clone https://github.com/nickirk/immo.git`
+    bot/
+        wg-gesucht.py                   # symlink to file
+        submit_wg.py                    # symlink to file
+        login-creds.json                # symlink to file
+        message.txt                     # symlink to file
+        scrapy.cfg                      # deploy configuration file
+        bot/                            # project's Python module, you'll import your code from here
+            __init__.py
+            items.py                    # project items definition file
+            pipelines.py                # project pipelines file
+            settings.py                 # project settings file
+            spiders/                    # a directory where you'll later put your spiders
+                __init__.py
+                wg-gesucht-spider.py    # symlink to file
 
 
-### How it works
-Go into the directory: 
+### 8 Finally, simply run
 
-`cd immo`
+```
+bash run.sh
+```
 
-#### Modify the scripts according to your needs
-
-1. In `submit.py` file, you will see
-
-`last_name.send_keys("last name")`
-
-`first_name.send_keys("first name")`
-
-`street.send_keys("your current living street")`
-
-and etc. Replace the text with your own information. Especially in 
-
-`text_area.send_keys(u"Hallo,\n\n your message to the landlord. keep the 'u' before the message to make showing German in the message available. use \n as newline in your message.")`
-
-write your message to the landlord. Please keep the 'u' in front of the message so that the special German letters will show in the message on the browser side. After this line, there are no more things needed to be modified. 
-
-2. In `immo_spider.py` file, you need to replace the website links that fits your need. For example,
-
-   ````python
-   start_urls = [
-	'https://www.immobilienscout24.de/Suche/S-2/Wohnung-Miete/Umkreissuche/Stuttgart/70569/-64516/2093406/-/-/5/1,50-/-/EURO--850,00',
-	'https://www.immobilienscout24.de/Suche/S-2/Wohnung-Miete/Fahrzeitsuche/Stuttgart/70569/-64516/2093406/-/-/30/2,00-/-/EURO--850,00'
-   	]
-   ````
-You can go to  [immobilienscout](!https://www.immobilienscout24.de/) and enter your filter, e.g. around 70569 Stuttgart within 5 km or 30 mins away, price until 850 Euros. Click search, you will arrive at the page showing you the results. However, you need to choose the realtime (Aktualität) sorting so that the results you see are always the latest offers. Then copy the link address and paste it into the start_urls. You can put more than one links to it separated by comma.
-
-#### Create a Scrapy Spider project
-
-First, we need to [create a new scrapy project](!https://docs.scrapy.org/en/latest/intro/tutorial.html#creating-a-project) 
-called immobot:
-
-`scrapy startproject immobot`
-
-then you will have the following structure of directories and files:
-
-     immobot/                  #Working directory
-         scrapy.cfg            # deploy configuration file
-         immobot/             # project's Python module, you'll import your code from here
-             __init__.py
-             items.py          # project items definition file
-             pipelines.py      # project pipelines file
-             settings.py       # project settings file
-             spiders/          # a directory where you'll later put your spiders
-                 __init__.py
-
-Now let's go to the working directory called `immobot` which contains the file `scrapy.cfg` and another direcory which is also called `immobot`:
-
-`cd immobot`
-
-Now copy the 3 files into the following directories:
-
-`cp ../immo.py ../submit.py .`
-
-`cp ../immo_spider.py ./immobot/spiders/`
-
-after this you will have the following structure of directories and files 
-
-     immobot/                  #Working directory
-         immo.py
-         submit.py
-         scrapy.cfg            # deploy configuration file
-         immobot/             # project's Python module, you'll import your code from here
-             __init__.py
-             items.py          # project items definition file
-             pipelines.py      # project pipelines file
-             settings.py       # project settings file
-             spiders/          # a directory where you'll later put your spiders
-                 __init__.py
-                 immo_spider.py
-
-
-In the end, just run 
-
-`python immo.py`
-
-under you working directory *immobot*, the Bot will be running and doing everything for you.
-
-Further simpilfications of the scripts will be done to make it a blackbox tool.
-
-## Tips and troubleshooting
-You may run into issues, hopefully these tips can help:
-
-**chromedriver may be installed somewhere else** then asumed by the script. You can check this by running `which chromedriver`, it's result should be: `/usr/local/bin/chromedriver`. If it's not, then change this value in [submit.py]() in the line with `webdriver.Chrome('<pass in your value here>')`.
-
-**you've made changes, but nothing changed**. Remember to copy the `.py` files into the `immobot` folder.
-
-**testing** can be easily done by removing one of the id's from the `diff.dat` file. During the next check, the script will just consider this specific advertisement as a new one.
+<!-- **testing** can be easily done by removing one of the id's from the `diff.dat` file. During the next check, the script will just consider this specific advertisement as a new one. -->
