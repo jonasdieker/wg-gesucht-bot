@@ -1,4 +1,5 @@
 import json
+import logging
 import os.path
 import time
 from datetime import datetime
@@ -6,7 +7,13 @@ from subprocess import call
 
 import submit_wg
 
-fname = "wg_offer.json"
+logging.basicConfig(
+    format="[%(asctime)s | %(levelname)s] - %(message)s ",
+    level=logging.INFO,
+    datefmt="%Y-%m-%d_%H:%M:%S",
+    handlers=[logging.FileHandler("../debug.log"), logging.StreamHandler()],
+)
+logger = logging.getLogger("bot")
 
 
 def scrape_site():
@@ -46,46 +53,46 @@ def clear_json_files():
 
 def main():
     clear_json_files()
+    fname = "wg_offer.json"
     while True:
         if os.path.isfile(fname):
-            print("'wg_offer.json' file found.")
+            logger.info("Scrape wg-gesucht.de for new offers.")
             call(["mv", fname, "wg_offer_old.json"])
             data, data_old = scrape_site()
         else:
-            print("No 'wg_offer.json' file found.")
+            logger.info("No 'wg_offer.json' file found.")
             data, data_old = scrape_site()
 
         if os.path.isfile("wg_blacklist.json"):
             with open("wg_blacklist.json") as blacklist:
                 blacklist = json.load(blacklist)
             blacklist = list(set([i["data-id"] for i in blacklist]))
+            logger.info(f"Blacklist: {blacklist}")
+
         else:
             blacklist = []
-        print("Blacklist: ", blacklist)
 
         diff_id = list(set(data) - set(data_old) - set(blacklist))
 
         text_file = open("wg_sent_request.dat", "a")
         text_file1 = open("wg_diff.dat", "a")
         if len(diff_id) != 0:
-            print(len(diff_id), "new offers found")
-            print("New offers id:", diff_id)
-            print("Time: ", datetime.now())
+            logger.info(f"Found {len(diff_id)} new offers.")
             for new in diff_id:
                 # avoid adding adds to list
                 if len(new.split("/")) > 2:
                     continue
-                print("Sending message to: ", new)
-                submit_wg.submit_app(new)
+                logger.info(f"Sending message to: {new}")
+                submit_wg.submit_app(new, logger)
                 text_file.write("ID: %s \n" % new)
                 text_file.write(str(datetime.now()) + "\n")
                 text_file1.write(str(new) + "\n")
             text_file.close()
             text_file1.close()
         else:
-            print("No new offers.")
-            print("Time: ", datetime.now())
-        time.sleep(5)
+            logger.info("No new offers.")
+        logger.info("Sleep.")
+        time.sleep(60)
 
 
 if __name__ == "__main__":

@@ -17,13 +17,15 @@ def get_random_wait_time():
     return random.uniform(5, 10)
 
 
-def submit_app(ref):
+def submit_app(ref, logger):
     # change the location of the driver on your machine
     # create ChromeOptions object
     chrome_options = webdriver.ChromeOptions()
     creds = get_login_credentials()
 
     # add the argument to reuse an existing tab
+    chrome_options.headless = True
+    chrome_options.add_argument("--window-size=1920,1080")
     chrome_options.add_argument("--reuse-tab")
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
     # chrome_options.add_argument("--no-sandbox")
@@ -59,17 +61,15 @@ def submit_app(ref):
         se_button1 = driver.find_element("id", "sicherheit_bestaetigung")
         se_button1.click()
     except:
-        print("No sicherheit check")
+        logger.info("No sicherheit check")
 
     # checks if already sent message to flat posting.
     try:
-        timestamp = driver.find_element("id", "message_timestamp")
-        print("Timestamp = ", timestamp)
-        print("Message has been sent. Will skip")
+        logger.info("Message has already been sent previously. Will skip this offer.")
         driver.quit()
         return
     except:
-        print("No message has been sent. Will send now...")
+        logger.info("No message has been sent. Will send now...")
 
     text_area = driver.find_element("id", "message_input")
     text_area.clear()
@@ -78,11 +78,11 @@ def submit_app(ref):
     try:
         message_file = open("./message.txt", "r")
         message = message_file.read()
-        # print(message)
+        # logger.info(message)
         text_area.send_keys(message)
         message_file.close()
     except:
-        print("message.txt file not found!")
+        logger.info("message.txt file not found!")
         return 0
 
     # driver.implicitly_wait(10)
@@ -94,6 +94,6 @@ def submit_app(ref):
         )
         submit_button.click()
     except NoSuchElementException:
-        print("Cannot find submit button!")
+        logger.info("Cannot find submit button!")
         driver.quit()
     driver.quit()
