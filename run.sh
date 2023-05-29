@@ -1,5 +1,5 @@
 #!bin/bash
 
-source venv/bin/activate
+source env/bin/activate
 cd bot
 python wg-gesucht.py
