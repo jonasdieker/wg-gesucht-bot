@@ -26,6 +26,9 @@ def submit_app(ref):
     # add the argument to reuse an existing tab
     chrome_options.add_argument("--reuse-tab")
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+    # chrome_options.add_argument("--no-sandbox")
+    # chrome_options.add_argument("--disable-dev-shm-usage")
+    # chrome_options.add_argument("--headless")
 
     # create the ChromeDriver object
     driver = webdriver.Chrome("/usr/local/bin/chromedriver", options=chrome_options)
