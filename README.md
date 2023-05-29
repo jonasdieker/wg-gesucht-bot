@@ -8,8 +8,8 @@ Thanks to the code by [nickirk](https://github.com/nickirk/immo), which served a
 ### 1 Create virtual environment and install Python packages
 
 ```bash
-python -m venv .env
-source .env/bin/activate
+python -m venv env
+source env/bin/activate
 pip install -r requirements.txt
 ```
 
