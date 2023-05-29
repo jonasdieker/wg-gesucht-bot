@@ -82,7 +82,7 @@ def main():
                 # avoid adding adds to list
                 if len(new.split("/")) > 2:
                     continue
-                logger.info(f"Sending message to: {new}")
+                logger.info(f"Trying to send message to: {new}")
                 submit_wg.submit_app(new, logger)
                 text_file.write("ID: %s \n" % new)
                 text_file.write(str(datetime.now()) + "\n")
@@ -92,7 +92,7 @@ def main():
         else:
             logger.info("No new offers.")
         logger.info("Sleep.")
-        time.sleep(60)
+        time.sleep(5)
 
 
 if __name__ == "__main__":

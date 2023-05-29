@@ -61,10 +61,11 @@ def submit_app(ref, logger):
         se_button1 = driver.find_element("id", "sicherheit_bestaetigung")
         se_button1.click()
     except:
-        logger.info("No sicherheit check")
+        logger.info("No security check.")
 
     # checks if already sent message to flat posting.
     try:
+        driver.find_element("id", "message_timestamp")
         logger.info("Message has already been sent previously. Will skip this offer.")
         driver.quit()
         return
@@ -93,6 +94,7 @@ def submit_app(ref, logger):
             "//button[@data-ng-click='submit()' or contains(.,'Nachricht senden')]",
         )
         submit_button.click()
+        logger.info(f">>>> Message sent to: {ref} <<<<")
     except NoSuchElementException:
         logger.info("Cannot find submit button!")
         driver.quit()
