@@ -2,6 +2,7 @@ import json
 import logging
 import os.path
 import time
+from argparse import ArgumentParser
 from datetime import datetime
 from subprocess import call
 
@@ -51,7 +52,7 @@ def clear_json_files():
             json.dumps({})
 
 
-def main():
+def main(args):
     clear_json_files()
     fname = "wg_offer.json"
     while True:
@@ -83,7 +84,7 @@ def main():
                 if len(new.split("/")) > 2:
                     continue
                 logger.info(f"Trying to send message to: {new}")
-                submit_wg.submit_app(new, logger)
+                submit_wg.submit_app(new, logger, args)
                 text_file.write("ID: %s \n" % new)
                 text_file.write(str(datetime.now()) + "\n")
                 text_file1.write(str(new) + "\n")
@@ -96,4 +97,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = ArgumentParser()
+    parser.add_argument("--launch_type", type=str, default="headless")
+    args = parser.parse_args()
+    main(args)

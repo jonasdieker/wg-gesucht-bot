@@ -37,6 +37,8 @@ Alternatively run `sudo apt-get install chromium-chromedriver` if on Raspberry O
 
 Just go to the website, enter all your filter requirements, apply filter and simply copy the url you get.
 
+Once you have copied the url, simply paste it into the `urls` list in `submit_wg.py`.
+
 ### 6 Run **scrapy** to setup the bot structure
 
 ``` bash
@@ -84,5 +86,7 @@ After the folder structure should look like this:
 ```
 bash run.sh
 ```
+
+The bash script will run the code headlessly, so that you can have it running 24/7 on a Raspberry Pi. If you would like to see the bot click through the webiste to get a better understanding of what is going on behind the scenes, you can add `--launch_type non-headless` to the last line of the bash script.
 
 <!-- **testing** can be easily done by removing one of the id's from the `diff.dat` file. During the next check, the script will just consider this specific advertisement as a new one. -->

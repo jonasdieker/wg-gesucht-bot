@@ -50,16 +50,23 @@ def send_keys(driver, by, id, send_str):
         raise ElementNotInteractableException(f"Could not enter: {send_str}")
 
 
-def submit_app(ref, logger):
+def submit_app(ref, logger, args):
 
     chrome_options = webdriver.ChromeOptions()
     creds = get_login_credentials()
 
     # add the argument to reuse an existing tab
-    chrome_options.headless = True
-    chrome_options.add_argument("--window-size=1920,1080")
-    chrome_options.add_argument("--reuse-tab")
-    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+    if args["launch_type"] == "headless":
+        chrome_options.headless = True
+        chrome_options.add_argument("--window-size=1920,1080")
+        chrome_options.add_argument("--reuse-tab")
+        chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+    elif args["launch_type"] == "non-headless":
+        pass
+    else:
+        raise NotImplementedError(
+            "Entered unsupported 'launch_type'. Please choose from {'headless', non-headless}"
+        )
     # chrome_options.add_argument("--no-sandbox")
     # chrome_options.add_argument("--disable-dev-shm-usage")
     # chrome_options.add_argument("--headless")
@@ -133,8 +140,8 @@ def submit_app(ref, logger):
             "//button[@data-ng-click='submit()' or contains(.,'Nachricht senden')]",
             )
         logger.info(f">>>> Message sent to: {ref} <<<<")
+        time.sleep(3)
     except ElementNotInteractableException:
         logger.info("Cannot find submit button!")
         driver.quit()
-    time.sleep(1)
     driver.quit()
