@@ -37,7 +37,7 @@ Alternatively run `sudo apt-get install chromium-chromedriver` if on Raspberry O
 
 Just go to the website, enter all your filter requirements, apply filter and simply copy the url you get.
 
-Once you have copied the url, simply paste it into the `urls` list in `submit_wg.py`.
+Once you have copied the url, simply paste it into the `urls` list in `wg-gesucht-spider.py`.
 
 ### 6 Run **scrapy** to setup the bot structure
 
