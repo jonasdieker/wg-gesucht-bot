@@ -50,18 +50,18 @@ def send_keys(driver, by, id, send_str):
         raise ElementNotInteractableException(f"Could not enter: {send_str}")
 
 
-def submit_app(ref, logger, args):
+def submit_app(ref, logger, args, messages_sent):
 
     chrome_options = webdriver.ChromeOptions()
     creds = get_login_credentials()
 
     # add the argument to reuse an existing tab
-    if args["launch_type"] == "headless":
+    if args.launch_type == "headless":
         chrome_options.headless = True
         chrome_options.add_argument("--window-size=1920,1080")
         chrome_options.add_argument("--reuse-tab")
         chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-    elif args["launch_type"] == "non-headless":
+    elif args.launch_type == "non-headless":
         pass
     else:
         raise NotImplementedError(
@@ -108,14 +108,25 @@ def submit_app(ref, logger, args):
     except:
         logger.info("No security check.")
 
-    # checks if already sent message to flat posting.
+    # checks if its possible to sent message to listing.
     try:
         _ = get_element(driver, By.ID, "message_timestamp")
         logger.info("Message has already been sent previously. Will skip this offer.")
         driver.quit()
-        return
+        return None
     except:
         logger.info("No message has been sent. Will send now...")
+
+    # Get user name and listing address to compare to previous ones
+    listing_user = get_element(driver, By.XPATH, '//*[@id="start_new_conversation"]/div[3]/div[1]/label/b').text
+    listing_user = " ".join(listing_user.split(" ")[2:])
+    listing_address = get_element(driver, By.XPATH, '//*[@id="ad_details_card"]/div[1]/div[2]/div[1]/div[2]').text
+    info_to_store = listing_user + " " + listing_address
+    if info_to_store in messages_sent:
+        # this means that the user reuploaded the listing -> should skip
+        logger.info("Listing was reuploaded and has been contacted in the past! Skipping ...")
+        driver.quit()
+        return None
 
     text_area = get_element(driver, By.ID, "message_input")
     if text_area:
@@ -130,7 +141,7 @@ def submit_app(ref, logger, args):
         message_file.close()
     except:
         logger.info("message.txt file not found!")
-        return 0
+        return None
 
     time.sleep(2)
 
@@ -141,7 +152,9 @@ def submit_app(ref, logger, args):
             )
         logger.info(f">>>> Message sent to: {ref} <<<<")
         time.sleep(3)
+        driver.quit()
+        return info_to_store
     except ElementNotInteractableException:
         logger.info("Cannot find submit button!")
         driver.quit()
-    driver.quit()
+        return None
