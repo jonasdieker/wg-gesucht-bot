@@ -119,8 +119,9 @@ def submit_app(ref, logger, args, messages_sent):
 
     # Get user name and listing address to compare to previous ones
     listing_user = get_element(driver, By.XPATH, '//*[@id="start_new_conversation"]/div[3]/div[1]/label/b').text
+    listing_user = " ".join(listing_user.split(" ")[2:])
     listing_address = get_element(driver, By.XPATH, '//*[@id="ad_details_card"]/div[1]/div[2]/div[1]/div[2]').text
-    info_to_store = listing_user + listing_address
+    info_to_store = listing_user + " " + listing_address
     if info_to_store in messages_sent:
         # this means that the user reuploaded the listing -> should skip
         logger.info("Listing was reuploaded and has been contacted in the past! Skipping ...")
