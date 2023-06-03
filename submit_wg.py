@@ -118,9 +118,15 @@ def submit_app(ref, logger, args, messages_sent):
         logger.info("No message has been sent. Will send now...")
 
     # Get user name and listing address to compare to previous ones
-    listing_user = get_element(driver, By.XPATH, '//*[@id="start_new_conversation"]/div[3]/div[1]/label/b').text
+    # note div changes depending on if there is a "Hinweis"
+    try:
+        listing_user = get_element(driver, By.XPATH, '//*[@id="start_new_conversation"]/div[3]/div[1]/label/b').text
+    except TimeoutException:
+        listing_user = get_element(driver, By.XPATH, '//*[@id="start_new_conversation"]/div[4]/div[1]/label/b').text
     listing_user = " ".join(listing_user.split(" ")[2:])
+    logger.info(f"Got user name: {listing_user}")
     listing_address = get_element(driver, By.XPATH, '//*[@id="ad_details_card"]/div[1]/div[2]/div[1]/div[2]').text
+    logger.info(f"Got listing address: {listing_address}")
     info_to_store = listing_user + " " + listing_address
     if info_to_store in messages_sent:
         # this means that the user reuploaded the listing -> should skip
