@@ -64,32 +64,24 @@ def main(args):
             logger.info("No 'wg_offer.json' file found.")
             data, data_old = scrape_site()
 
-        if os.path.isfile("wg_blacklist.json"):
-            with open("wg_blacklist.json") as blacklist:
-                blacklist = json.load(blacklist)
-            blacklist = list(set([i["data-id"] for i in blacklist]))
-            logger.info(f"Blacklist: {blacklist}")
+        if not os.path.isfile("messages_sent.txt"):
+            with open("messages_sent.txt", "w") as f:
+                pass
 
-        else:
-            blacklist = []
-
-        diff_id = list(set(data) - set(data_old) - set(blacklist))
-
-        text_file = open("wg_sent_request.dat", "a")
-        text_file1 = open("wg_diff.dat", "a")
+        diff_id = list(set(data) - set(data_old))
+        with open("messages_sent.txt", "r") as msgs:
+            messages_sent = msgs.readlines()
         if len(diff_id) != 0:
             logger.info(f"Found {len(diff_id)} new offers.")
             for new in diff_id:
-                # avoid adding adds to list
+                # avoid messaging letting agencies
                 if len(new.split("/")) > 2:
                     continue
                 logger.info(f"Trying to send message to: {new}")
-                submit_wg.submit_app(new, logger, args)
-                text_file.write("ID: %s \n" % new)
-                text_file.write(str(datetime.now()) + "\n")
-                text_file1.write(str(new) + "\n")
-            text_file.close()
-            text_file1.close()
+                info_to_store = submit_wg.submit_app(new, logger, args, messages_sent)
+                if info_to_store:
+                    with open("messages_sent.txt", "a") as msgs:
+                        msgs.write(f"{info_to_store}\n")
         else:
             logger.info("No new offers.")
         logger.info("Sleep.")
