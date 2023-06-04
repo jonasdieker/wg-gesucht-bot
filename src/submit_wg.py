@@ -49,6 +49,22 @@ def send_keys(driver, by, id, send_str):
     except ElementNotInteractableException:
         raise ElementNotInteractableException(f"Could not enter: {send_str}")
 
+def get_rental_length_months(date_range_str: str) -> int:
+    dates = date_range_str.split("-")
+    if len(dates) != 2:
+        # means listing is 'unbefristet'
+        return -1
+    start, end = date_range_str.split("-")
+    start, end = start.strip(), end.strip()
+
+    # year, month, day
+    start_day, start_month, start_year = start.split(".")
+    end_day, end_month, end_year = end.split(".")
+
+    # get time difference in months
+    date_diff = (int(end_year) - int(start_year)) * 12 + (int(end_month) - int(start_month))
+    return date_diff
+
 
 def submit_app(ref, logger, args, messages_sent):
 
@@ -116,6 +132,21 @@ def submit_app(ref, logger, args, messages_sent):
         return None
     except:
         logger.info("No message has been sent. Will send now...")
+
+    # Check length of rental period
+    min_rental_length_months = args.min_rental_period
+    try:
+        rental_length = get_element(driver, By.XPATH, '//*[@id="ad_details_card"]/div[1]/div[2]/div[2]/div[2]').text
+        rental_length_months = get_rental_length_months(rental_length)
+        if rental_length_months >= 0:
+            logger.info(f"Rental period is {rental_length_months} month(s).")
+        else:
+            logger.info("Listing is 'unbefristet'")
+        if rental_length_months >= 0 and rental_length_months < min_rental_length_months:
+            logger.info(f"Rental period is below {min_rental_length_months} months. Skipping ...")
+            return None
+    except NoSuchElementException:
+        logger.info("No rental length found. Continuing ...")
 
     # Get user name and listing address to compare to previous ones
     # note div changes depending on if there is a "Hinweis"

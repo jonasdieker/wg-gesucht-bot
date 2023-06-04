@@ -87,6 +87,8 @@ After the folder structure should look like this:
 bash run.sh
 ```
 
-The bash script will run the code headlessly, so that you can have it running 24/7 on a Raspberry Pi. If you would like to see the bot click through the webiste to get a better understanding of what is going on behind the scenes, you can add `--launch_type non-headless` to the last line of the bash script.
+The bash script will run the code headlessly, so that you can have it running 24/7 on a Raspberry Pi/in the cloud. If you would like to see the bot click through the webiste to get a better understanding of what is going on behind the scenes, you can add `--launch_type non-headless` to the last line of the bash script.
+
+To have more fine grain control over how long the minimun rental period should be you can also use the `--min_rental_period` command line arg. See the bash script for how to use.
 
 <!-- **testing** can be easily done by removing one of the id's from the `diff.dat` file. During the next check, the script will just consider this specific advertisement as a new one. -->

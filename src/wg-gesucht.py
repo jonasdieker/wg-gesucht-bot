@@ -91,5 +91,6 @@ def main(args):
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--launch_type", type=str, default="headless")
+    parser.add_argument("--min_rental_period", type=int, default=6)
     args = parser.parse_args()
     main(args)
