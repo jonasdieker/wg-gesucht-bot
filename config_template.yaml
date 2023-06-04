@@ -1,7 +1,6 @@
 messages:
-  - german: "message_de.txt"
-  - english: "message_en.txt"
-default_message_language_index: 0
+  german: "message_de.txt"
+  english: "message_en.txt"
 wg_gesucht_credentials:
   email: "my-email@email.com"
   password: "password1234"

@@ -9,13 +9,13 @@ class OpenAIChatHelper:
 
     def __init__(
         self,
-        api_key_file: str = "openai-secret.json",
+        api_key: str,
         primer_prompt: str = "You are an AI assistant",
         model: Optional[str] = "gpt-3.5-turbo",
         temperature: Optional[float] = 0.75,
         max_tokens: Optional[int] = 1000,
     ):
-        self.api_key = get_api_key_from_file(api_key_file)
+        self.api_key = api_key
         self.model = model
         self.temperature = temperature
         self.max_tokens = max_tokens
@@ -85,11 +85,3 @@ class OpenAIHelper:
             model=model, prompt=prompt, temperature=temp, max_tokens=max_tokens
         )
         return resp
-
-
-def get_api_key_from_file(filename: str) -> None:
-    """Reads an API key from json file and sets it as openai attribute."""
-
-    with open(filename, "r") as file:
-        api_key = json.load(file)["api_key"]
-    return api_key

@@ -2,4 +2,9 @@
 
 source env/bin/activate
 cd bot
-python wg-gesucht.py --launch_type headless --min_rental_period 6
+
+# run headless
+DISPLAY=":0" python wg-gesucht.py
+
+# run with screen
+# python wg-gesucht.py

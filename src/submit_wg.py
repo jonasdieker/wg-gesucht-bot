@@ -13,17 +13,17 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 from openai_helper import OpenAIHelper
 
-def get_login_credentials():
-    with open("login-creds.json", "r") as f:
-        return json.load(f)
 
-
-def get_random_wait_time():
-    return random.uniform(5, 10)
+def valid_json(json_str: str) -> bool:
+    try:
+        json.loads(json_str)
+    except ValueError as e:
+        return False
+    return True
 
 
 def get_element(driver, by, id):
-    ignored_exceptions=(NoSuchElementException,StaleElementReferenceException)
+    ignored_exceptions = (StaleElementReferenceException, NoSuchElementException, ElementNotInteractableException)
     try:
         element = WebDriverWait(driver, 10, ignored_exceptions).until(
             EC.presence_of_element_located((by, id))
@@ -69,14 +69,19 @@ def get_rental_length_months(date_range_str: str) -> int:
     date_diff = (int(end_year) - int(start_year)) * 12 + (int(end_month) - int(start_month))
     return date_diff
 
-def get_chatgpt_language(openai_helper, config, listing_text) -> str:
-    openai = OpenAIHelper(config["openai_credentials"])
+def gpt_get_language(config, listing_text) -> str:
+    openai = OpenAIHelper(config["openai_credentials"]["api_key"])
     prompt = f"""What language is this:
     '{listing_text}'
     Please only respond in a JSON style format like 'language: '<your-answer>',
     where your answer should be a single word which is the language."""
     response = openai.generate(prompt)
-    return response
+    if valid_json(listing):
+        return response["language"]
+    return ""
+
+def gpt_get_keyword(openai_helper, config, listing_text) -> str:
+    pass
 
 
 def submit_app(ref, logger, config, messages_sent):
@@ -124,10 +129,11 @@ def submit_app(ref, logger, config, messages_sent):
     time.sleep(1) # wait to scroll down
     click_button(driver, By.ID, "copy_asset_description")
     listing_text = pyperclip.paste()
+    # logger.info(listing_text)
     logger.info("Got listing text!")
 
     # Clicking 'Nachricht Senden' button is tricky, so simply restart driver here.
-    time.sleep(1)
+    time.sleep(5)
     driver.get("https://www.wg-gesucht.de/nachricht-senden" + ref)
 
     # occasionally wg-gesucht gives you advice on how to stay safe.
@@ -157,6 +163,7 @@ def submit_app(ref, logger, config, messages_sent):
             logger.info("Listing is 'unbefristet'")
         if rental_length_months >= 0 and rental_length_months < min_rental_length_months:
             logger.info(f"Rental period is below {min_rental_length_months} months. Skipping ...")
+            driver.quit()
             return None
     except NoSuchElementException:
         logger.info("No rental length found. Continuing ...")
@@ -182,20 +189,38 @@ def submit_app(ref, logger, config, messages_sent):
     if text_area:
         text_area.clear()
 
-    # add GPT stuff here:
-    # - check language (maybe only paste in first few lines)
-    # - check for secret code to add to message start
+    languages = list(config["messages"].keys())
+    if len(languages) == 1:
+            message_file = config["messages"][languages[0]]
+            logger.info(f"Selected text in {languages[0]}")
+    else:
+        if config["openai_credentials"]["api_key"] == "":
+            # no openai key so just use first language in list
+            message_file = config["messages"][languages[0]]
+            logger.info(f"No openai api key -> selected text in {languages[0]}")
+        else:
+            # check which languages user want to message in using GPT
+            listing_language = gpt_get_language(config, listing_text).lower()
+            logger.info(f"Listing language is: {listing_language}.")
+            if listing_language in languages:
+                message_file = config["languages"][listing_language]
+                logger.info(f"Selected text in {listing_language}.")
+            else:
+                logger.info(f"Listing language does not overlap with available texts in {languages}. Using first languages in list.")
+                message_file = config["messages"][languages[0]]
 
     # read your message from a file
     try:
-        message_file = open("./message.txt", "r")
+        message_file = open(f"./{message_file}", "r")
         message = message_file.read()
-        time.sleep(get_random_wait_time())
+        time.sleep(2)
         text_area.send_keys(message)
         message_file.close()
     except:
-        logger.info("message.txt file not found!")
+        logger.info(f"{message_file} file not found!")
         return None
+
+    # TODO: further message processing!
 
     time.sleep(2)
 
