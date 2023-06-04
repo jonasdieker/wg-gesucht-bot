@@ -1,4 +1,5 @@
 import json
+import yaml
 import logging
 import os.path
 import time
@@ -89,8 +90,6 @@ def main(args):
 
 
 if __name__ == "__main__":
-    parser = ArgumentParser()
-    parser.add_argument("--launch_type", type=str, default="headless")
-    parser.add_argument("--min_rental_period", type=int, default=6)
-    args = parser.parse_args()
-    main(args)
+    with open("config.yaml", "r") as stream:
+        config = yaml.safe_load(stream)
+    main(config)

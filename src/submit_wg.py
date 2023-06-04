@@ -2,13 +2,16 @@
 import json
 import random
 import time
+import pyperclip
 
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException, TimeoutException, ElementNotInteractableException
+from selenium.common.exceptions import NoSuchElementException, TimeoutException, ElementNotInteractableException, StaleElementReferenceException
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+
+from openai_helper import OpenAIHelper
 
 def get_login_credentials():
     with open("login-creds.json", "r") as f:
@@ -20,13 +23,11 @@ def get_random_wait_time():
 
 
 def get_element(driver, by, id):
+    ignored_exceptions=(NoSuchElementException,StaleElementReferenceException)
     try:
-        element = WebDriverWait(driver, 10).until(
-            EC.visibility_of_element_located((by, id))
+        element = WebDriverWait(driver, 10, ignored_exceptions).until(
+            EC.presence_of_element_located((by, id))
         )
-    except NoSuchElementException:
-        driver.quit()
-        raise NoSuchElementException()
     except TimeoutException:
         element = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((by, id)))
     if isinstance(element, list):
@@ -37,6 +38,9 @@ def get_element(driver, by, id):
 def click_button(driver, by, id):
     try:
         element = get_element(driver, by, id)
+        # if button is not in view, ensure you scroll to it before clicking.
+        element.location_once_scrolled_into_view
+        time.sleep(1)
         element.click()
     except ElementNotInteractableException:
         raise ElementNotInteractableException()
@@ -65,34 +69,33 @@ def get_rental_length_months(date_range_str: str) -> int:
     date_diff = (int(end_year) - int(start_year)) * 12 + (int(end_month) - int(start_month))
     return date_diff
 
+def get_chatgpt_language(openai_helper, config, listing_text) -> str:
+    openai = OpenAIHelper(config["openai_credentials"])
+    prompt = f"""What language is this:
+    '{listing_text}'
+    Please only respond in a JSON style format like 'language: '<your-answer>',
+    where your answer should be a single word which is the language."""
+    response = openai.generate(prompt)
+    return response
 
-def submit_app(ref, logger, args, messages_sent):
+
+def submit_app(ref, logger, config, messages_sent):
 
     chrome_options = webdriver.ChromeOptions()
-    creds = get_login_credentials()
 
     # add the argument to reuse an existing tab
-    if args.launch_type == "headless":
+    if config["run_headless"]:
         chrome_options.headless = True
         chrome_options.add_argument("--window-size=1920,1080")
         chrome_options.add_argument("--reuse-tab")
         chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-    elif args.launch_type == "non-headless":
-        pass
-    else:
-        raise NotImplementedError(
-            "Entered unsupported 'launch_type'. Please choose from {'headless', non-headless}"
-        )
-    # chrome_options.add_argument("--no-sandbox")
-    # chrome_options.add_argument("--disable-dev-shm-usage")
-    # chrome_options.add_argument("--headless")
 
-    # create the ChromeDriver object
+    # create the ChromeDriver object and log
     try:
         service_log_path = "chromedriver.log"
         service_args = ["--verbose"]
         driver = webdriver.Chrome("/usr/bin/chromedriver", options=chrome_options, service_args=service_args, service_log_path=service_log_path)
-        driver.get("https://www.wg-gesucht.de/nachricht-senden/" + ref)
+        driver.get("https://www.wg-gesucht.de/" + ref)
     except:
         logger.log("Chrome crashed! You might be trying to run it without a screen in terminal? Look at 'chromedriver.log'.")
         driver.quit()
@@ -109,13 +112,23 @@ def submit_app(ref, logger, args, messages_sent):
     time.sleep(2)
 
     # enter email
-    send_keys(driver, By.ID, "login_email_username", creds["email"])
+    send_keys(driver, By.ID, "login_email_username", config["wg_gesucht_credentials"]["email"])
 
     # enter password
-    send_keys(driver, By.ID, "login_password", creds["password"])
+    send_keys(driver, By.ID, "login_password", config["wg_gesucht_credentials"]["password"])
 
     # login button
     click_button(driver, By.ID, "login_submit")
+
+    # get text from listing by finding element and getting all its children
+    time.sleep(1) # wait to scroll down
+    click_button(driver, By.ID, "copy_asset_description")
+    listing_text = pyperclip.paste()
+    logger.info("Got listing text!")
+
+    # Clicking 'Nachricht Senden' button is tricky, so simply restart driver here.
+    time.sleep(1)
+    driver.get("https://www.wg-gesucht.de/nachricht-senden" + ref)
 
     # occasionally wg-gesucht gives you advice on how to stay safe.
     try:
@@ -134,7 +147,7 @@ def submit_app(ref, logger, args, messages_sent):
         logger.info("No message has been sent. Will send now...")
 
     # Check length of rental period
-    min_rental_length_months = args.min_rental_period
+    min_rental_length_months = config["min_rental_period_months"]
     try:
         rental_length = get_element(driver, By.XPATH, '//*[@id="ad_details_card"]/div[1]/div[2]/div[2]/div[2]').text
         rental_length_months = get_rental_length_months(rental_length)
@@ -168,6 +181,10 @@ def submit_app(ref, logger, args, messages_sent):
     text_area = get_element(driver, By.ID, "message_input")
     if text_area:
         text_area.clear()
+
+    # add GPT stuff here:
+    # - check language (maybe only paste in first few lines)
+    # - check for secret code to add to message start
 
     # read your message from a file
     try:

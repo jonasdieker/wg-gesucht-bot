@@ -1,2 +1,4 @@
 selenium
 scrapy
+openai
+pyyaml
