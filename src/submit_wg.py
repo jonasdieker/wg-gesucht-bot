@@ -26,7 +26,7 @@ def get_element(driver, by, id):
     ignored_exceptions = (StaleElementReferenceException, NoSuchElementException, ElementNotInteractableException)
     try:
         element = WebDriverWait(driver, 10, ignored_exceptions).until(
-            EC.presence_of_element_located((by, id))
+            EC.visibility_of_element_located((by, id))
         )
     except TimeoutException:
         element = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((by, id)))
@@ -154,25 +154,24 @@ def submit_app(ref, logger, config, messages_sent):
 
     # Check length of rental period
     min_rental_length_months = config["min_rental_period_months"]
-    try:
-        rental_length = get_element(driver, By.XPATH, '//*[@id="ad_details_card"]/div[1]/div[2]/div[2]/div[2]').text
-        rental_length_months = get_rental_length_months(rental_length)
-        if rental_length_months >= 0:
-            logger.info(f"Rental period is {rental_length_months} month(s).")
-        else:
-            logger.info("Listing is 'unbefristet'")
-        if rental_length_months >= 0 and rental_length_months < min_rental_length_months:
-            logger.info(f"Rental period is below {min_rental_length_months} months. Skipping ...")
-            driver.quit()
-            return None
-    except NoSuchElementException:
-        logger.info("No rental length found. Continuing ...")
+    rental_length = get_element(driver, By.XPATH, '//*[@id="ad_details_card"]/div[1]/div[2]/div[2]/div[2]').text
+    rental_length_months = get_rental_length_months(rental_length)
+    if rental_length_months >= 0:
+        logger.info(f"Rental period is {rental_length_months} month(s).")
+    else:
+        logger.info("Listing is 'unbefristet'")
+    # skip if rental period too short
+    if rental_length_months >= 0 and rental_length_months < min_rental_length_months:
+        logger.info(f"Rental period is below {min_rental_length_months} months. Skipping ...")
+        driver.quit()
+        return None
 
     # Get user name and listing address to compare to previous ones
     # note div changes depending on if there is a "Hinweis"
+    time.sleep(2)
     try:
         listing_user = get_element(driver, By.XPATH, '//*[@id="start_new_conversation"]/div[3]/div[1]/label/b').text
-    except TimeoutException:
+    except:
         listing_user = get_element(driver, By.XPATH, '//*[@id="start_new_conversation"]/div[4]/div[1]/label/b').text
     listing_user = " ".join(listing_user.split(" ")[2:])
     logger.info(f"Got user name: {listing_user}")
@@ -218,10 +217,15 @@ def submit_app(ref, logger, config, messages_sent):
         message_file.close()
     except:
         logger.info(f"{message_file} file not found!")
+        driver.quit()
         return None
 
     # TODO: further message processing!
-
+    # f"""This is my info:
+    # {}
+    # This is the question: {}.
+    # Please respond to question based on my info."""
+    
     time.sleep(2)
 
     try:
