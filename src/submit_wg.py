@@ -39,9 +39,12 @@ def click_button(driver, by, id):
     try:
         element = get_element(driver, by, id)
         # if button is not in view, ensure you scroll to it before clicking.
+        print("got element 2")
         element.location_once_scrolled_into_view
+        print("scrolled to element!")
         time.sleep(1)
         element.click()
+        print("clicked element")
     except ElementNotInteractableException:
         raise ElementNotInteractableException()
         
@@ -49,6 +52,8 @@ def click_button(driver, by, id):
 def send_keys(driver, by, id, send_str):
     try:
         element = get_element(driver, by, id)
+        print("got text field")
+        element.clear()
         element.send_keys(send_str)
     except ElementNotInteractableException:
         raise ElementNotInteractableException(f"Could not enter: {send_str}")
@@ -84,6 +89,19 @@ def gpt_get_keyword(openai_helper, config, listing_text) -> str:
     pass
 
 
+def save_listing_text(file_name: str, text: str):
+    if not os.path.exists(file_name):
+        data = {"texts": [text]}
+        with open(file_name, "w") as f:
+            json.dump(data, f)
+    
+    with open(file_name, "r+") as f:
+        data = json.load(file)
+        data["texts"].append(text)
+        file.seek(0)
+        json.dump(data, f)
+
+
 def submit_app(ref, logger, config, messages_sent):
 
     chrome_options = webdriver.ChromeOptions()
@@ -94,6 +112,7 @@ def submit_app(ref, logger, config, messages_sent):
         chrome_options.add_argument("--window-size=1920,1080")
         chrome_options.add_argument("--reuse-tab")
         chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+        chrome_options.add_argument("--blink-settings=imagesEnabled=false")
 
     # create the ChromeDriver object and log
     try:
@@ -114,7 +133,7 @@ def submit_app(ref, logger, config, messages_sent):
     # my account button
     click_button(driver, By.XPATH, "//*[contains(text(), 'Mein Konto')]")
 
-    time.sleep(2)
+    # time.sleep(2)
 
     # enter email
     send_keys(driver, By.ID, "login_email_username", config["wg_gesucht_credentials"]["email"])
@@ -130,6 +149,7 @@ def submit_app(ref, logger, config, messages_sent):
     click_button(driver, By.ID, "copy_asset_description")
     listing_text = pyperclip.paste()
     # logger.info(listing_text)
+    save_listing_text("listing_texts.json", listing_text)
     logger.info("Got listing text!")
 
     # Clicking 'Nachricht Senden' button is tricky, so simply restart driver here.
