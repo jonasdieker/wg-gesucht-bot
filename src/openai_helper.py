@@ -71,8 +71,8 @@ class OpenAIChatHelper:
 
 
 class OpenAIHelper:
-    def __init__(self, api_key_file: str = "openai-secret.json"):
-        openai.api_key = get_api_key_from_file(api_key_file)
+    def __init__(self, api_key: str):
+        openai.api_key = api_key
 
     def models(self):
         return openai.Model.list()
@@ -80,8 +80,13 @@ class OpenAIHelper:
     def retrieve_model(self, model: str):
         return openai.Model.retrieve(model)
 
-    def generate(self, prompt, model="text-davinci-003", temp=0.75, max_tokens=1000):
-        resp = openai.Completion.create(
-            model=model, prompt=prompt, temperature=temp, max_tokens=max_tokens
+    def generate(self, prompt, model="gpt-3.5-turbo", temperature=0.75, max_tokens=1000):
+        messages = [{"role": "user", "content": prompt}]
+        resp = openai.ChatCompletion.create(
+            model=model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens
         )
-        return resp
+        response = resp.choices[0].message.content
+        return response

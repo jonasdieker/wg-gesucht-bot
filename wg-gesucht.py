@@ -32,7 +32,7 @@ def main(config):
         - Checks if listing is reupload by comparing to user_name and address
         - Gets listing text -> can be used for OpenAI further down the line
         - Attemps to submit an application
-        - If sending was successful it adds listing to 'messages_sent.txt'
+        - Adds listing to 'past_listings.txt'
     """
 
     # initialise old listings for later
@@ -40,11 +40,12 @@ def main(config):
 
     while True:
         # read previously sent messages:
-        if not os.path.exists("messages_sent.txt"):
-            messages_sent = []
+        past_listings_file_name = "past_listings.txt"
+        if not os.path.exists(past_listings_file_name):
+            prev_listings = []
         else:
-            with open("messages_sent.txt", "r") as msgs:
-                messages_sent = msgs.readlines()
+            with open(past_listings_file_name, "r") as msgs:
+                prev_listings = msgs.readlines()
         
         # get current listings
         url = config["url"]
@@ -77,9 +78,10 @@ def main(config):
                     continue
 
                 # check if already messaged listing in the past
-                messages_sent_identifier = f"{listing['user_name']}: {listing['address']}"
-                if messages_sent_identifier in messages_sent:
-                    logger.info("Listing was reuploaded and has been contacted in the past! Skipping ...")
+                listings_sent_identifier = f"{listing['user_name']}: {listing['address']}\n"
+                if listings_sent_identifier in prev_listings:
+                    logger.info("Listing in 'prev_listings' file, therfore contacted in the past! Skipping ...")
+                    continue
 
                 # get listing text and store in config for later processing
                 listing_info_getter = ListingInfoGetter(ref)
@@ -91,12 +93,14 @@ def main(config):
 
                 # if new message sent -> store information about listing
                 if sending_successful:
-                    with open("messages_sent.txt", "a") as msgs:
-                        msgs.write(f"{messages_sent_identifier}\n")
                     listing_info_getter.save_listing_text(
                         "listing_texts.json", listing_text
                     )
-            old_listings = new_listings
+                
+                # add listing to past_listings.txt
+                with open(past_listings_file_name, "a") as msgs:
+                    msgs.write(f"{listings_sent_identifier}")
+            old_listings = new_listings.copy()
         else:
             logger.info("No new offers.")
         logger.info("Sleep.")

@@ -19,14 +19,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from src import OpenAIHelper
 
 
-def valid_json(json_str: str) -> bool:
-    try:
-        json.loads(json_str)
-    except ValueError as e:
-        return False
-    return True
-
-
 def get_element(driver, by, id):
     ignored_exceptions = (
         StaleElementReferenceException,
@@ -45,6 +37,7 @@ def get_element(driver, by, id):
 
 
 def click_button(driver, by, id):
+    driver.implicitly_wait(2)
     try:
         element = get_element(driver, by, id)
         driver.implicitly_wait(2)
@@ -54,6 +47,7 @@ def click_button(driver, by, id):
 
 
 def send_keys(driver, by, id, send_str):
+    driver.implicitly_wait(2)
     try:
         element = get_element(driver, by, id)
         element.send_keys(send_str)
@@ -61,17 +55,35 @@ def send_keys(driver, by, id, send_str):
         raise ElementNotInteractableException(f"Could not enter: {send_str}")
 
 
-def gpt_get_language(config) -> str:
+def gpt_get_language(config, logger) -> str:
     openai = OpenAIHelper(config["openai_credentials"]["api_key"])
     listing_text = config['listing_text']
-    prompt = f"""What language is this:
-    '{listing_text}'
-    Please only respond in a JSON style format like 'language: '<your-answer>',
-    where your answer should be a single word which is the language."""
-    response = openai.generate(prompt)
-    if valid_json(response):
-        return response["language"]
-    return ""
+
+    if len(listing_text) < 200:
+        listing_text = listing_text[10:]
+    else:
+        listing_text = listing_text[10:200]
+    
+    # build prompt
+    prompt_lst = []
+    prompt_lst.append("What language is this:\n")
+    prompt_lst.append(listing_text)
+    prompt_lst.append(" Please only respond in a JSON style format like ")
+    prompt_lst.append('{"language": "<your-answer>"}, '),
+    prompt_lst.append("where your answer should be a single word which is the language.")
+    prompt = "".join(prompt_lst)
+
+    # pass prompt into openai helper method
+    response = str(openai.generate(prompt)).strip()
+    # response = '{"language": "German"}'
+    logger.info(f"GPT response: {response}")
+
+    # try to load json from string
+    try:
+        response_json = json.loads(response)
+    except ValueError:
+        logger.info("Response was not valid JSON format.")
+    return response_json.get("language", "")
 
 
 def gpt_get_keyword(openai_helper, config) -> str:
@@ -109,15 +121,11 @@ def submit_app(config, logger):
         driver.quit()
         return False
 
-    driver.implicitly_wait(2)
-
     # accept cookies button
     click_button(driver, By.XPATH, "//*[contains(text(), 'Accept all')]")
 
     # my account button
     click_button(driver, By.XPATH, "//*[contains(text(), 'Mein Konto')]")
-
-    driver.implicitly_wait(2)
 
     # enter email
     send_keys(
@@ -133,28 +141,22 @@ def submit_app(config, logger):
     click_button(driver, By.ID, "login_submit")
     logger.info("Logged in.")
 
-    driver.implicitly_wait(2)
-
     # occasionally wg-gesucht gives you advice on how to stay safe.
     try:
         click_button(driver, By.ID, "sicherheit_bestaetigung")
     except:
         logger.info("No security check.")
 
-    # driver.implicitly_wait(5)
-    time.sleep(2)
+    driver.implicitly_wait(2)
 
     # checks if its possible to sent message to listing.
     try:
-        # _ = get_element(driver, By.ID, "message_timestamp")
-        _ = get_element(driver, By.XPATH, '//*[@id="last_message_id_895679322"]/div')
+        _ = get_element(driver, By.ID, "message_timestamp")
         logger.info("Message has already been sent previously. Will skip this offer.")
         driver.quit()
         return False
     except:
         logger.info("No message has been sent. Will send now...")
-
-    driver.implicitly_wait(2)
 
     logger.info(f"Sending to: {config['user_name']}, {config['address']}.")
 
@@ -162,6 +164,7 @@ def submit_app(config, logger):
     if text_area:
         text_area.clear()
 
+    # get language from GPT
     languages = list(config["messages"].keys())
     if len(languages) == 1:
         message_file = config["messages"][languages[0]]
@@ -173,10 +176,9 @@ def submit_app(config, logger):
             logger.info(f"No openai api key -> selected text in {languages[0]}")
         else:
             # check which languages user want to message in using GPT
-            listing_language = gpt_get_language(config).lower()
-            logger.info(f"Listing language is: {listing_language}.")
+            listing_language = gpt_get_language(config, logger).lower()
             if listing_language in languages:
-                message_file = config["languages"][listing_language]
+                message_file = config["messages"][listing_language]
                 logger.info(f"Selected text in {listing_language}.")
             else:
                 logger.info(
@@ -184,19 +186,12 @@ def submit_app(config, logger):
                 )
                 message_file = config["messages"][languages[0]]
 
-    logger.info("auto quit ...")
-    driver.quit()
-    time.sleep(2)
-    return False
     # read message from a file
     try:
-        message_file = open(f"./{message_file}", "r")
-        message = str(message_file.read())
+        with open(message_file, "r") as file:
+            message = str(file.read())
         message = message.replace("receipient", config["user_name"].split(" ")[0])
-        print(message)
-        time.sleep(20000)
         text_area.send_keys(message)
-        message_file.close()
     except:
         logger.info(f"{message_file} file not found!")
         driver.quit()
@@ -217,7 +212,7 @@ def submit_app(config, logger):
             "//button[@data-ng-click='submit()' or contains(.,'Nachricht senden')]",
         )
         logger.info(f">>>> Message sent to: {config['ref']} <<<<")
-        driver.implicitly_wait(2)
+        time.sleep(2)
         driver.quit()
         return True
     except ElementNotInteractableException:
