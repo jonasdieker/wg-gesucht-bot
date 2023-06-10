@@ -16,7 +16,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-from openai_helper import OpenAIHelper
+from src import OpenAIHelper
 
 
 def valid_json(json_str: str) -> bool:
@@ -34,11 +34,11 @@ def get_element(driver, by, id):
         ElementNotInteractableException,
     )
     try:
-        element = WebDriverWait(driver, 10, ignored_exceptions).until(
-            EC.visibility_of_element_located((by, id))
-        )
+        wait = WebDriverWait(driver, 10, poll_frequency=1)
+        element = wait.until(EC.visibility_of_element_located((by, id)))
     except TimeoutException:
-        element = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((by, id)))
+        wait = WebDriverWait(driver, 30, poll_frequency=1)
+        element = wait.until(EC.presence_of_element_located((by, id)))
     if isinstance(element, list):
         element = element[0]
     return element
@@ -47,7 +47,7 @@ def get_element(driver, by, id):
 def click_button(driver, by, id):
     try:
         element = get_element(driver, by, id)
-        time.sleep(1)
+        driver.implicitly_wait(2)
         element.click()
     except ElementNotInteractableException:
         raise ElementNotInteractableException()
@@ -61,8 +61,9 @@ def send_keys(driver, by, id, send_str):
         raise ElementNotInteractableException(f"Could not enter: {send_str}")
 
 
-def gpt_get_language(config, listing_text) -> str:
+def gpt_get_language(config) -> str:
     openai = OpenAIHelper(config["openai_credentials"]["api_key"])
+    listing_text = config['listing_text']
     prompt = f"""What language is this:
     '{listing_text}'
     Please only respond in a JSON style format like 'language: '<your-answer>',
@@ -73,11 +74,11 @@ def gpt_get_language(config, listing_text) -> str:
     return ""
 
 
-def gpt_get_keyword(openai_helper, config, listing_text) -> str:
+def gpt_get_keyword(openai_helper, config) -> str:
     pass
 
 
-def submit_app(ref, logger, config, messages_sent):
+def submit_app(config, logger):
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument("--log-level=3")
 
@@ -87,13 +88,6 @@ def submit_app(ref, logger, config, messages_sent):
         chrome_options.add_argument("--window-size=1920,1080")
         chrome_options.add_argument("--reuse-tab")
         chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-    else:
-        # chrome_options.add_argument("--blink-settings=imagesEnabled=false")
-        # chrome_options.add_argument("--no-sandbox")
-        # chrome_options.add_argument("--no-proxy-server")
-        # chrome_options.add_argument("--proxy-server='direct://'")
-        # chrome_options.add_argument("--proxy-bypass-list=*")
-        pass
 
     # create the ChromeDriver object and log
     try:
@@ -107,15 +101,15 @@ def submit_app(ref, logger, config, messages_sent):
         )
         # mainly when using screen
         driver.maximize_window()
-        driver.get("https://www.wg-gesucht.de/nachricht-senden" + ref)
+        driver.get("https://www.wg-gesucht.de/nachricht-senden" + config["ref"])
     except:
         logger.log(
             "Chrome crashed! You might be trying to run it without a screen in terminal?"
         )
         driver.quit()
-        return
+        return False
 
-    time.sleep(1)
+    driver.implicitly_wait(2)
 
     # accept cookies button
     click_button(driver, By.XPATH, "//*[contains(text(), 'Accept all')]")
@@ -123,7 +117,7 @@ def submit_app(ref, logger, config, messages_sent):
     # my account button
     click_button(driver, By.XPATH, "//*[contains(text(), 'Mein Konto')]")
 
-    time.sleep(2)
+    driver.implicitly_wait(2)
 
     # enter email
     send_keys(
@@ -137,8 +131,9 @@ def submit_app(ref, logger, config, messages_sent):
 
     # login button
     click_button(driver, By.ID, "login_submit")
+    logger.info("Logged in.")
 
-    time.sleep(2)
+    driver.implicitly_wait(2)
 
     # occasionally wg-gesucht gives you advice on how to stay safe.
     try:
@@ -146,46 +141,22 @@ def submit_app(ref, logger, config, messages_sent):
     except:
         logger.info("No security check.")
 
+    # driver.implicitly_wait(5)
     time.sleep(2)
 
     # checks if its possible to sent message to listing.
     try:
-        _ = get_element(driver, By.ID, "message_timestamp")
+        # _ = get_element(driver, By.ID, "message_timestamp")
+        _ = get_element(driver, By.XPATH, '//*[@id="last_message_id_895679322"]/div')
         logger.info("Message has already been sent previously. Will skip this offer.")
         driver.quit()
-        return None
+        return False
     except:
         logger.info("No message has been sent. Will send now...")
 
-    # Get user name and listing address to compare to previous ones
-    # note div changes depending on if there is a "Hinweis"
-    time.sleep(2)
-    try:
-        listing_user = get_element(
-            driver, By.XPATH, '//*[@id="start_new_conversation"]/div[3]/div[1]/label/b'
-        ).text
-    except:
-        listing_user = get_element(
-            driver, By.XPATH, '//*[@id="start_new_conversation"]/div[4]/div[1]/label/b'
-        ).text
-    listing_user = " ".join(listing_user.split(" ")[2:])
-    logger.info(f"Got user name: {listing_user}")
-    listing_address = get_element(
-        driver, By.XPATH, '//*[@id="ad_details_card"]/div[1]/div[2]/div[1]/div[2]'
-    ).text
-    logger.info(f"Got listing address: {listing_address}")
-    info_to_store = listing_user + " " + listing_address
-    if info_to_store in messages_sent:
-        # this means that the user reuploaded the listing -> should skip
-        logger.info(
-            "Listing was reuploaded and has been contacted in the past! Skipping ..."
-        )
-        driver.quit()
-        return None
+    driver.implicitly_wait(2)
 
-    # retrieve listing text from args
-    listing_text = config["listing_text"]
-    logger.info("Got listing text!")
+    logger.info(f"Sending to: {config['user_name']}, {config['address']}.")
 
     text_area = get_element(driver, By.ID, "message_input")
     if text_area:
@@ -202,7 +173,7 @@ def submit_app(ref, logger, config, messages_sent):
             logger.info(f"No openai api key -> selected text in {languages[0]}")
         else:
             # check which languages user want to message in using GPT
-            listing_language = gpt_get_language(config, listing_text).lower()
+            listing_language = gpt_get_language(config).lower()
             logger.info(f"Listing language is: {listing_language}.")
             if listing_language in languages:
                 message_file = config["languages"][listing_language]
@@ -213,19 +184,23 @@ def submit_app(ref, logger, config, messages_sent):
                 )
                 message_file = config["messages"][languages[0]]
 
-    # read your message from a file
+    logger.info("auto quit ...")
+    driver.quit()
+    time.sleep(2)
+    return False
+    # read message from a file
     try:
         message_file = open(f"./{message_file}", "r")
         message = str(message_file.read())
-        message = message.replace("receipient", listing_user[:-1])
+        message = message.replace("receipient", config["user_name"].split(" ")[0])
         print(message)
-        time.sleep(2000000)
+        time.sleep(20000)
         text_area.send_keys(message)
         message_file.close()
     except:
         logger.info(f"{message_file} file not found!")
         driver.quit()
-        return None
+        return False
 
     # TODO: further message processing!
     # f"""This is my info:
@@ -233,7 +208,7 @@ def submit_app(ref, logger, config, messages_sent):
     # This is the question: {}.
     # Please respond to question based on my info."""
 
-    time.sleep(2)
+    driver.implicitly_wait(2)
 
     try:
         click_button(
@@ -241,11 +216,11 @@ def submit_app(ref, logger, config, messages_sent):
             By.XPATH,
             "//button[@data-ng-click='submit()' or contains(.,'Nachricht senden')]",
         )
-        logger.info(f">>>> Message sent to: {ref} <<<<")
-        time.sleep(3)
+        logger.info(f">>>> Message sent to: {config['ref']} <<<<")
+        driver.implicitly_wait(2)
         driver.quit()
-        return info_to_store
+        return True
     except ElementNotInteractableException:
         logger.info("Cannot find submit button!")
         driver.quit()
-        return None
+        return False
