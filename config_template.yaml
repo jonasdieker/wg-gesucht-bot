@@ -7,4 +7,4 @@ wg_gesucht_credentials:
 openai_credentials:
   api_key: ""
 run_headless: false
-min_rental_period_months: 6
+min_listing_length_months: 6
