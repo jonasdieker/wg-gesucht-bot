@@ -3,6 +3,11 @@
 
 Thanks to the code by [nickirk](https://github.com/nickirk/immo), which served as a starting point for this project.
 
+
+## UPDATES (coming soon):
+
+Option to use OpenAI GPT model to create more personalised messages!
+
 ## Getting Started
 
 ### 1 Create virtual environment and install Python packages
@@ -11,6 +16,7 @@ Thanks to the code by [nickirk](https://github.com/nickirk/immo), which served a
 python -m venv env
 source env/bin/activate
 pip install -r requirements.txt
+playwright install
 ```
 
 ### 2 Ensure `chromedriver` is installed
@@ -20,75 +26,37 @@ Running `which chromedriver` should return a path like `/usr/local/bin/chromedri
 If not simply run `sudo apt-get install chromedriver` if on Ubuntu.
 
 Alternatively run `sudo apt-get install chromium-chromedriver` if on Raspberry OS.
-`
 
-### 3 Enter your email and password for WG-Gesucht into `login-creds.json`
+### 3 Setup config file
 
-```json
-{
-    "email": "my-email@gmail.com",
-    "password": "password1234"
-}
+Rename `config_template.yaml` to `config.yaml`, enter your email and password for wg-gesucht.de and your token for OpenAI.
+
+```yaml
+messages:
+  message_de: "message_de.txt"
+  message_en: "message_en.txt"
+wg_gesucht_credentials:
+  email: "my-email@email.com"
+  password: "password1234"
+url: ""
+openai_credentials:
+  api_key: ""
+run_headless: false
+min_listing_length_months: 6
 ```
 
-### 4 Write message into `message.txt`
+If you only wish to send messages in e.g. english, simply delete `german: "message_de.txt` from the `messages` list in `config.yaml` file.
 
-### 5 Add your complete search URL into `wg-gesucht-spider.py`
+You also need to enter the `url`. Just go to `wg-gesucht.de`, enter all your filter requirements, apply filter and simply copy the url you get.
 
-Just go to the website, enter all your filter requirements, apply filter and simply copy the url you get.
+### 4 Write message into `message_de.txt` and `message_en.txt`
 
-Once you have copied the url, simply paste it into the `urls` list in `wg-gesucht-spider.py`.
+Make sure you use the format of `Hello receipient`. Since the code automatically replaces `receipient` with the name of the user.
 
-### 6 Run **scrapy** to setup the bot structure
-
-``` bash
-scrapy startproject bot
-```
-
-After this you should have a new folder called `bot` with a strucuture like:
-
-    bot/
-        scrapy.cfg            # deploy configuration file
-        bot/                  # project's Python module, you'll import your code from here
-            __init__.py
-            items.py          # project items definition file
-            pipelines.py      # project pipelines file
-            settings.py       # project settings file
-            spiders/          # a directory where you'll later put your spiders
-                __init__.py
-
-### 7 Run bash script `create_symlinks.sh`
-
-```terminal
-bash create_symlinks.sh
-```
-
-After the folder structure should look like this:
-
-    bot/
-        wg-gesucht.py                   # symlink to file
-        submit_wg.py                    # symlink to file
-        login-creds.json                # symlink to file
-        message.txt                     # symlink to file
-        scrapy.cfg                      # deploy configuration file
-        bot/                            # project's Python module, you'll import your code from here
-            __init__.py
-            items.py                    # project items definition file
-            pipelines.py                # project pipelines file
-            settings.py                 # project settings file
-            spiders/                    # a directory where you'll later put your spiders
-                __init__.py
-                wg-gesucht-spider.py    # symlink to file
-
-
-### 8 Finally, simply run
+### 5 Finally, simply run:
 
 ```
 bash run.sh
 ```
 
-The bash script will run the code headlessly, so that you can have it running 24/7 on a Raspberry Pi/in the cloud. If you would like to see the bot click through the webiste to get a better understanding of what is going on behind the scenes, you can add `--launch_type non-headless` to the last line of the bash script.
-
-To have more fine grain control over how long the minimun rental period should be you can also use the `--min_rental_period` command line arg. See the bash script for how to use.
-
-<!-- **testing** can be easily done by removing one of the id's from the `diff.dat` file. During the next check, the script will just consider this specific advertisement as a new one. -->
+To change configs edit the `config.yaml` file.

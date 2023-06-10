@@ -1,0 +1,11 @@
+messages:
+  german: "message_de.txt"
+  english: "message_en.txt"
+wg_gesucht_credentials:
+  email: "my-email@email.com"
+  password: "password1234"
+url: ""
+openai_credentials:
+  api_key: ""
+run_headless: false
+min_listing_length_months: 6

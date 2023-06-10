@@ -1,2 +1,5 @@
 selenium
-scrapy
+playwright
+openai
+pyyaml
+beautifulsoup4
