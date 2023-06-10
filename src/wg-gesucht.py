@@ -1,13 +1,13 @@
 import json
-import yaml
 import logging
 import os.path
 import time
-from argparse import ArgumentParser
-from datetime import datetime
 from subprocess import call
 
+import yaml
+
 import submit_wg
+from get_listing_text import ListingInfoGetter
 
 logging.basicConfig(
     format="[%(asctime)s | %(levelname)s] - %(message)s ",
@@ -50,7 +50,7 @@ def clear_json_files():
     files = ["wg_offer.json", "wg_offer_old.json"]
     for file in files:
         with open(file, "w") as f:
-            json.dumps({})
+            json.dump({}, f)
 
 
 def main(args):
@@ -74,15 +74,30 @@ def main(args):
             messages_sent = msgs.readlines()
         if len(diff_id) != 0:
             logger.info(f"Found {len(diff_id)} new offers.")
-            for new in diff_id:
+            for ref in diff_id:
                 # avoid messaging letting agencies
-                if len(new.split("/")) > 2:
+                if len(ref.split("/")) > 2:
                     continue
-                logger.info(f"Trying to send message to: {new}")
-                info_to_store = submit_wg.submit_app(new, logger, args, messages_sent)
+                logger.info(f"Trying to send message to: {ref}")
+
+                # get listing info which can be retrieved from html and store in args
+                listing_info_getter = ListingInfoGetter(ref)
+                listing_text = listing_info_getter.get_listing_text()
+                listing_length_months = listing_info_getter.get_rental_length_months()
+                args["listing_text"] = listing_text
+                args["listing_length_months"] = listing_length_months
+
+                # use selenium to retrieve dynamically loaded info and send message
+                info_to_store = submit_wg.submit_app(ref, logger, args, messages_sent)
+
+                # if new message sent -> store information about listing
                 if info_to_store:
                     with open("messages_sent.txt", "a") as msgs:
                         msgs.write(f"{info_to_store}\n")
+                    listing_info_getter.save_listing_text(
+                        "listing_texts.json", listing_text
+                    )
+
         else:
             logger.info("No new offers.")
         logger.info("Sleep.")
