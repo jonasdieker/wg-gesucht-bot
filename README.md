@@ -40,7 +40,7 @@ wg_gesucht_credentials:
 openai_credentials:
   api_key: ""
 run_headless: false
-min_rental_period_months: 6
+min_listing_length_months: 6
 ```
 
 If you only wish to send messages in e.g. english, simply delete `german: "message_de.txt` from the `messages` list in `config.yaml` file.
