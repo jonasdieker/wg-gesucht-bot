@@ -31,12 +31,19 @@ class ListingGetter:
 
     def get_refs(self):
         elements = self.soup.find_all("a", href=True)
-        listings = set()
+        listings = list()
         for el in elements:
             href = el["href"]
             if ".html" == href[-5:] and "/" == href[0]:
-                listings.add(href)
+                listings.append(href)
+        listings = self._filter_listing(listings)
         return listings
+
+    @staticmethod
+    def _filter_listing(lst):
+        seen = set()
+        seen_add = seen.add
+        return [x for x in lst if not (x in seen or seen_add(x))]
 
     def get_users(self):
         users = list()
