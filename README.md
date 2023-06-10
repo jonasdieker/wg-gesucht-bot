@@ -8,6 +8,8 @@ Thanks to the code by [nickirk](https://github.com/nickirk/immo), which served a
 
 Option to use OpenAI GPT model to create more personalised messages!
 
+So far only language detection is supported.
+
 ## Getting Started
 
 ### 1 Create virtual environment and install Python packages
@@ -29,7 +31,7 @@ Alternatively run `sudo apt-get install chromium-chromedriver` if on Raspberry O
 
 ### 3 Setup config file
 
-Rename `config_template.yaml` to `config.yaml`, enter your email and password for wg-gesucht.de and your token for OpenAI.
+Rename `config_template.yaml` to `config.yaml`, enter your email and password for wg-gesucht.de and your token for OpenAI (optional).
 
 ```yaml
 messages:
@@ -45,7 +47,9 @@ run_headless: false
 min_listing_length_months: 6
 ```
 
-If you only wish to send messages in e.g. english, simply delete `german: "message_de.txt` from the `messages` list in `config.yaml` file.
+If you wish to send messages in e.g. english ONLY, simply delete `german: "message_de.txt` from the `messages` list in `config.yaml` file.
+
+If no OpenAI token is provided, the bot will simply pick the first element from the `messages` list.
 
 You also need to enter the `url`. Just go to `wg-gesucht.de`, enter all your filter requirements, apply filter and simply copy the url you get.
 
