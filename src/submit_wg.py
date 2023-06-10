@@ -4,7 +4,6 @@ import os
 import random
 import time
 
-import pyperclip
 from selenium import webdriver
 from selenium.common.exceptions import (
     ElementNotInteractableException,
@@ -158,23 +157,6 @@ def submit_app(ref, logger, config, messages_sent):
     except:
         logger.info("No message has been sent. Will send now...")
 
-    time.sleep(2)
-
-    # Check length of rental period
-    min_rental_length_months = config["min_listing_length_months"]
-    rental_length_months = config["listing_length_months"]
-    if rental_length_months >= 0:
-        logger.info(f"Rental period is {rental_length_months} month(s).")
-    else:
-        logger.info("Listing is 'unbefristet'")
-    # skip if rental period too short
-    if rental_length_months >= 0 and rental_length_months < min_rental_length_months:
-        logger.info(
-            f"Rental period is below {min_rental_length_months} months. Skipping ..."
-        )
-        driver.quit()
-        return None
-
     # Get user name and listing address to compare to previous ones
     # note div changes depending on if there is a "Hinweis"
     time.sleep(2)
@@ -234,8 +216,10 @@ def submit_app(ref, logger, config, messages_sent):
     # read your message from a file
     try:
         message_file = open(f"./{message_file}", "r")
-        message = message_file.read()
-        time.sleep(2)
+        message = str(message_file.read())
+        message = message.replace("receipient", listing_user[:-1])
+        print(message)
+        time.sleep(2000000)
         text_area.send_keys(message)
         message_file.close()
     except:
