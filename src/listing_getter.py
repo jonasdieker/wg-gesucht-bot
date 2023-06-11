@@ -13,7 +13,8 @@ class ListingGetter:
             html = page.inner_html("#main_column")   
         
         soup = BeautifulSoup(html, "lxml")
-        self.soup = soup
+        # get all listing elements by looking for 'liste-details-ad-#####'
+        self.listings = soup.find_all("div", id=re.compile("^liste-details-ad-\d+"))
 
     def get_all_infos(self):
         info_dict = {}
@@ -21,7 +22,21 @@ class ListingGetter:
         user_names = self.get_users()
         addresses, wg_types = self.get_address_wg()
         rental_lengths_months = self.get_rental_length_months()
+
+        # ensure all list are the same length
+        lists = [refs, user_names, addresses, wg_types, rental_lengths_months]
+        it = iter(lists)
+        the_len = len(next(it))
+        if not all(len(l) == the_len for l in it):
+            raise ValueError("Not all lists have the same length!")
+
+        # write dict for all listings
         for i, (ref, user_name, address, wg_type, rental_length_months) in enumerate(zip(refs, user_names, addresses, wg_types, rental_lengths_months)):
+            
+            # skip promotes offers from letting agencies
+            if "\n" in user_name:
+                continue
+
             listing_dict = {}
             listing_dict["ref"], listing_dict["user_name"] = ref, user_name
             listing_dict["address"], listing_dict["wg_type"] = address, wg_type
@@ -30,45 +45,35 @@ class ListingGetter:
         return info_dict
 
     def get_refs(self):
-        elements = self.soup.find_all("a", href=True)
-        listings = list()
-        for el in elements:
-            href = el["href"]
-            if ".html" == href[-5:] and "/" == href[0]:
-                listings.append(href)
-        listings = self._filter_listing(listings)
-        return listings
-
-    @staticmethod
-    def _filter_listing(lst):
-        seen = set()
-        seen_add = seen.add
-        return [x for x in lst if not (x in seen or seen_add(x))]
+        refs = list()
+        for listing in self.listings:
+            element = listing.find("a", href=True)
+            refs.append(element["href"])
+        return refs
 
     def get_users(self):
         users = list()
-        elements = self.soup.find_all("span", {"class": "ml5"})
-        for element in elements:
-            text = element.getText()
-            users.append(text)
+        for listing in self.listings:
+            element = listing.find("span", {"class": "ml5"})
+            users.append(element.getText())
         return users
 
     def get_address_wg(self):
         address = list()
         wg_type = list()
-        elements = self.soup.find_all("div", {"class": "col-xs-11"})
-        for el in elements:
-            text = el.find("span").getText()
+        for listing in self.listings:
+            element = listing.find("div", {"class": "col-xs-11"})
+            text = element.find("span").getText()
             parts = [part.strip() for part in re.split("\||\n", text) if part.strip() != ""]
             wg_type.append(parts[0])
             address.append(", ".join(parts[::-1][:-1]))
         return address, wg_type
 
     def get_rental_length_months(self):
-        rental_length_months = []
-        elements = self.soup.find_all("div", {"class": "col-xs-5 text-center"})
-        for el in elements:
-            text = el.getText()
+        rental_length_months = list()
+        for listing in self.listings:
+            element = listing.find("div", {"class": "col-xs-5 text-center"})
+            text = element.getText()
             start_end = [part.strip() for part in re.split("-|\n", text) if part.strip() != ""]
             rental_length_months.append(self._get_rental_length_months("-".join(start_end)))
         return rental_length_months
