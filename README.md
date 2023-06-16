@@ -1,14 +1,14 @@
 # WG-Gesucht Bot 
 *Let's face it, looking for a new WG is a pain, so why not just automate the process?*
 
-Thanks to the code by [nickirk](https://github.com/nickirk/immo), which served as a starting point for this project.
 
-
-## UPDATES (coming soon):
+## Note on GPT use:
 
 Option to use OpenAI GPT model to create more personalised messages!
 
-So far only language detection is supported.
+So far only language classification is supported.
+
+You can easily add more functionality. Simply process the listing text (`config['listing_text']`) with GPT by writing a function which uses the `OpenAIHelper` class. Look at the `gpt_get_language` function inside the `src/submit_wg.py` file to get an idea.
 
 ## Getting Started
 
@@ -64,3 +64,10 @@ bash run.sh
 ```
 
 To change configs edit the `config.yaml` file.
+
+
+## Acknowledgements
+
+Thanks to the code by [nickirk](https://github.com/nickirk/immo), which served as a starting point for this project.
+
+Note: Most of the code has been completely rewritten for simplicity and speed improvements.

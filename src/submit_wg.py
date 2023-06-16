@@ -160,6 +160,8 @@ def submit_app(config, logger):
 
     logger.info(f"Sending to: {config['user_name']}, {config['address']}.")
 
+    driver.implicitly_wait(2)
+
     text_area = get_element(driver, By.ID, "message_input")
     if text_area:
         text_area.clear()
