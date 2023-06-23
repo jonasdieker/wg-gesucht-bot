@@ -83,11 +83,32 @@ def gpt_get_language(config, logger) -> str:
         response_json = json.loads(response)
     except ValueError:
         logger.info("Response was not valid JSON format.")
+        return ""
     return response_json.get("language", "")
 
 
-def gpt_get_keyword(openai_helper, config) -> str:
-    pass
+def gpt_get_keyword(config, logger) -> str:
+    openai = OpenAIHelper(config["openai_credentials"]["api_key"])
+    listing_text = config['listing_text']
+
+    prompt_lst = []
+    prompt_lst.append("Check if there exists a keyword in the text, to show I read the text.\n")
+    prompt_lst.append('This keyword is most likely wrapped in quotation marks like: "".\n')
+    prompt_lst.append("Note however that not all texts will include such a keyword. Here is the text:\n")
+    prompt_lst.append(f"'{listing_text}'")
+    prompt_lst.append("\nPlease only respond in JSON format like ")
+    prompt_lst.append('{"keyword": "<your-keyword>"}, ')
+    prompt_lst.append("where your <your-keyword> is the keyword from the text that you found.")
+    prompt = "".join(prompt_lst)
+
+    response = str(openai.generate(prompt)).strip()
+    logger.info(f"GPT response: {response}")
+    try:
+        response_json = json.loads(response)
+    except ValueError:
+        logger.info("Response was not valid JSON format.")
+        return ""
+    return response_json.get("keyword", "")
 
 
 def submit_app(config, logger):
@@ -188,11 +209,17 @@ def submit_app(config, logger):
                 )
                 message_file = config["messages"][languages[0]]
 
+    if config["openai_credentials"]["api_key"] != "":
+        # get keyword from GPT
+        keyword = gpt_get_keyword(config, logger)
+
     # read message from a file
     try:
         with open(message_file, "r") as file:
             message = str(file.read())
         message = message.replace("receipient", config["user_name"].split(" ")[0])
+        if "keyword" in locals() and keyword != "":
+            message = f"{keyword}\n\n" + message
         text_area.send_keys(message)
     except:
         logger.info(f"{message_file} file not found!")

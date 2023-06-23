@@ -9,7 +9,7 @@ class ListingGetter:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
             page = browser.new_page()
-            page.goto(url)
+            page.goto(url, timeout=0) # millisecond timeout
             html = page.inner_html("#main_column")   
         
         soup = BeautifulSoup(html, "lxml")

@@ -104,7 +104,7 @@ def main(config):
         else:
             logger.info("No new offers.")
         logger.info("Sleep.")
-        time.sleep(5)
+        time.sleep(60)
 
 
 if __name__ == "__main__":

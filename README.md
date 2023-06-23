@@ -6,7 +6,7 @@
 
 Option to use OpenAI GPT model to create more personalised messages!
 
-So far only language classification is supported.
+So far only language classification and keyword detection are supported.
 
 You can easily add more functionality. Simply process the listing text (`config['listing_text']`) with GPT by writing a function which uses the `OpenAIHelper` class. Look at the `gpt_get_language` function inside the `src/submit_wg.py` file to get an idea.
 
