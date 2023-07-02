@@ -209,9 +209,9 @@ def submit_app(config, logger):
                 )
                 message_file = config["messages"][languages[0]]
 
-    if config["openai_credentials"]["api_key"] != "":
-        # get keyword from GPT
-        keyword = gpt_get_keyword(config, logger)
+    # if config["openai_credentials"]["api_key"] != "":
+    #     # get keyword from GPT
+    #     keyword = gpt_get_keyword(config, logger)
 
     # read message from a file
     try:
@@ -225,12 +225,6 @@ def submit_app(config, logger):
         logger.info(f"{message_file} file not found!")
         driver.quit()
         return False
-
-    # TODO: further message processing!
-    # f"""This is my info:
-    # {}
-    # This is the question: {}.
-    # Please respond to question based on my info."""
 
     driver.implicitly_wait(2)
 
