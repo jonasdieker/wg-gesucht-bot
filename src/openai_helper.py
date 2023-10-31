@@ -1,4 +1,3 @@
-import json
 from typing import Optional
 
 import openai
@@ -80,13 +79,15 @@ class OpenAIHelper:
     def retrieve_model(self, model: str):
         return openai.Model.retrieve(model)
 
-    def generate(self, prompt, model="gpt-3.5-turbo", temperature=0.75, max_tokens=1000):
+    def generate(
+        self, prompt, model="gpt-3.5-turbo", temperature=0.75, max_tokens=1000
+    ):
         messages = [{"role": "user", "content": prompt}]
         resp = openai.ChatCompletion.create(
             model=model,
             messages=messages,
             temperature=temperature,
-            max_tokens=max_tokens
+            max_tokens=max_tokens,
         )
         response = resp.choices[0].message.content
         return response
