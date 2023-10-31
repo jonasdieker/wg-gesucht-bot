@@ -1,4 +1,3 @@
-import json
 import logging
 import os.path
 import time
@@ -6,12 +5,7 @@ from subprocess import call
 
 import yaml
 
-from src import (
-    submit_wg,
-    ListingGetter,
-    ListingInfoGetter,
-
-)
+from src import ListingGetter, ListingInfoGetter, submit_wg
 
 logging.basicConfig(
     format="[%(asctime)s | %(levelname)s] - %(message)s ",
@@ -46,7 +40,7 @@ def main(config):
         else:
             with open(past_listings_file_name, "r") as msgs:
                 prev_listings = msgs.readlines()
-        
+
         # get current listings
         url = config["url"]
         listing_getter = ListingGetter(url)
@@ -55,7 +49,9 @@ def main(config):
 
         # get diff: new - old listings
         old_values = old_listings.values()
-        diff_dict = {k: v for k, v in enumerate(new_listings.values()) if v not in old_values}
+        diff_dict = {
+            k: v for k, v in enumerate(new_listings.values()) if v not in old_values
+        }
         if diff_dict:
             logger.info(f"Found {len(diff_dict)} new listings.")
             for listing in diff_dict.values():
@@ -71,16 +67,23 @@ def main(config):
 
                 # check rental length, if below min -> skip this listing
                 min_rental_length_months = config["min_listing_length_months"]
-                if listing_length_months >= 0 and listing_length_months < min_rental_length_months:
+                if (
+                    listing_length_months >= 0
+                    and listing_length_months < min_rental_length_months
+                ):
                     logger.info(
-                                f"Rental period of {listing_length_months} months is below required {min_rental_length_months} months. Skipping ..."
-                                )
+                        f"Rental period of {listing_length_months} months is below required {min_rental_length_months} months. Skipping ..."
+                    )
                     continue
 
                 # check if already messaged listing in the past
-                listings_sent_identifier = f"{listing['user_name']}: {listing['address']}\n"
+                listings_sent_identifier = (
+                    f"{listing['user_name']}: {listing['address']}\n"
+                )
                 if listings_sent_identifier in prev_listings:
-                    logger.info("Listing in 'prev_listings' file, therfore contacted in the past! Skipping ...")
+                    logger.info(
+                        "Listing in 'prev_listings' file, therfore contacted in the past! Skipping ..."
+                    )
                     continue
 
                 # get listing text and store in config for later processing
@@ -96,7 +99,7 @@ def main(config):
                     listing_info_getter.save_listing_text(
                         "listing_texts.json", listing_text
                     )
-                
+
                 # add listing to past_listings.txt
                 with open(past_listings_file_name, "a") as msgs:
                     msgs.write(f"{listings_sent_identifier}")

@@ -1,7 +1,8 @@
+import pprint
+import re
+
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
-import re
-import pprint
 
 
 class ListingGetter:
@@ -9,9 +10,9 @@ class ListingGetter:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
             page = browser.new_page()
-            page.goto(url, timeout=0) # millisecond timeout
-            html = page.inner_html("#main_column")   
-        
+            page.goto(url, timeout=0)  # millisecond timeout
+            html = page.inner_html("#main_column")
+
         soup = BeautifulSoup(html, "lxml")
         # get all listing elements by looking for 'liste-details-ad-#####'
         self.listings = soup.find_all("div", id=re.compile("^liste-details-ad-\d+"))
@@ -31,16 +32,20 @@ class ListingGetter:
             raise ValueError("Not all lists have the same length!")
 
         # write dict for all listings
-        for i, (ref, user_name, address, wg_type, rental_length_months) in enumerate(zip(refs, user_names, addresses, wg_types, rental_lengths_months)):
-            
+        for i, (ref, user_name, address, wg_type, rental_length_months) in enumerate(
+            zip(refs, user_names, addresses, wg_types, rental_lengths_months)
+        ):
             # skip promotes offers from letting agencies
             if "\n" in user_name:
                 continue
 
-            listing_dict = {}
-            listing_dict["ref"], listing_dict["user_name"] = ref, user_name
-            listing_dict["address"], listing_dict["wg_type"] = address, wg_type
-            listing_dict["rental_length_months"] = rental_length_months
+            listing_dict = {
+                "ref": ref,
+                "user_name": user_name,
+                "address": address,
+                "wg_type": wg_type,
+                "rental_length_months": rental_length_months,
+            }
             info_dict[i] = listing_dict
         return info_dict
 
@@ -64,7 +69,9 @@ class ListingGetter:
         for listing in self.listings:
             element = listing.find("div", {"class": "col-xs-11"})
             text = element.find("span").getText()
-            parts = [part.strip() for part in re.split("\||\n", text) if part.strip() != ""]
+            parts = [
+                part.strip() for part in re.split("\||\n", text) if part.strip() != ""
+            ]
             wg_type.append(parts[0])
             address.append(", ".join(parts[::-1][:-1]))
         return address, wg_type
@@ -74,8 +81,12 @@ class ListingGetter:
         for listing in self.listings:
             element = listing.find("div", {"class": "col-xs-5 text-center"})
             text = element.getText()
-            start_end = [part.strip() for part in re.split("-|\n", text) if part.strip() != ""]
-            rental_length_months.append(self._get_rental_length_months("-".join(start_end)))
+            start_end = [
+                part.strip() for part in re.split("-|\n", text) if part.strip() != ""
+            ]
+            rental_length_months.append(
+                self._get_rental_length_months("-".join(start_end))
+            )
         return rental_length_months
 
     @staticmethod
