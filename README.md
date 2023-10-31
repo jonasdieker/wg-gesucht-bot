@@ -35,16 +35,18 @@ Rename `config_template.yaml` to `config.yaml`, enter your email and password fo
 
 ```yaml
 messages:
-  message_de: "message_de.txt"
-  message_en: "message_en.txt"
+  german: "message_de.txt" # add this file
+  english: "message_en.txt" # add this file
 wg_gesucht_credentials:
-  email: "my-email@email.com"
-  password: "password1234"
-url: ""
+  email: "my-email@email.com" # change
+  password: "password1234" # change
+chromedriver_path: "/usr/local/bin/chromedriver" # change!
+url: "" # change!
 openai_credentials:
   api_key: ""
 run_headless: false
 min_listing_length_months: 6
+
 ```
 
 If you wish to send messages in e.g. english ONLY, simply delete `german: "message_de.txt` from the `messages` list in `config.yaml` file.

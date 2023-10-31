@@ -1,10 +1,11 @@
 messages:
-  german: "message_de.txt"
-  english: "message_en.txt"
+  german: "message_de.txt" # add this file
+  english: "message_en.txt" # add this file
 wg_gesucht_credentials:
-  email: "my-email@email.com"
-  password: "password1234"
-url: ""
+  email: "my-email@email.com" # change
+  password: "password1234" # change
+chromedriver_path: "/usr/local/bin/chromedriver" # change!
+url: "" # change!
 openai_credentials:
   api_key: ""
 run_headless: false

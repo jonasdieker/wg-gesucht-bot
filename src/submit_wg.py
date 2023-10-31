@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 import json
-import os
-import random
 import time
 
 from selenium import webdriver
@@ -25,6 +23,7 @@ def get_element(driver, by, id):
         NoSuchElementException,
         ElementNotInteractableException,
     )
+    remove_cookies_popup(driver)
     try:
         wait = WebDriverWait(driver, 10, poll_frequency=1)
         element = wait.until(EC.visibility_of_element_located((by, id)))
@@ -37,6 +36,7 @@ def get_element(driver, by, id):
 
 
 def click_button(driver, by, id):
+    remove_cookies_popup(driver)
     driver.implicitly_wait(2)
     try:
         element = get_element(driver, by, id)
@@ -44,6 +44,21 @@ def click_button(driver, by, id):
         element.click()
     except ElementNotInteractableException:
         raise ElementNotInteractableException()
+
+
+def click_at_coordinates(driver, x, y):
+    remove_cookies_popup(driver)
+    driver.implicitly_wait(2)
+    action = ActionChains(driver)
+    action.move_by_offset(x, y).click().perform()
+
+
+def remove_cookies_popup(driver):
+    divs_to_remove = driver.find_elements(
+        By.XPATH, "//div[@id='cmpbox' or @id='cmpbox2']"
+    )
+    for div in divs_to_remove:
+        driver.execute_script("arguments[0].remove();", div)
 
 
 def send_keys(driver, by, id, send_str):
@@ -57,20 +72,22 @@ def send_keys(driver, by, id, send_str):
 
 def gpt_get_language(config, logger) -> str:
     openai = OpenAIHelper(config["openai_credentials"]["api_key"])
-    listing_text = config['listing_text']
+    listing_text = config["listing_text"]
 
     if len(listing_text) < 200:
         listing_text = listing_text[10:]
     else:
         listing_text = listing_text[10:200]
-    
+
     # build prompt
     prompt_lst = []
     prompt_lst.append("What language is this:\n")
     prompt_lst.append(listing_text)
     prompt_lst.append(" Please only respond in a JSON style format like ")
     prompt_lst.append('{"language": "<your-answer>"}, '),
-    prompt_lst.append("where your answer should be a single word which is the language.")
+    prompt_lst.append(
+        "where your answer should be a single word which is the language."
+    )
     prompt = "".join(prompt_lst)
 
     # pass prompt into openai helper method
@@ -89,16 +106,24 @@ def gpt_get_language(config, logger) -> str:
 
 def gpt_get_keyword(config, logger) -> str:
     openai = OpenAIHelper(config["openai_credentials"]["api_key"])
-    listing_text = config['listing_text']
+    listing_text = config["listing_text"]
 
     prompt_lst = []
-    prompt_lst.append("Check if there exists a keyword in the text, to show I read the text.\n")
-    prompt_lst.append('This keyword is most likely wrapped in quotation marks like: "".\n')
-    prompt_lst.append("Note however that not all texts will include such a keyword. Here is the text:\n")
+    prompt_lst.append(
+        "Check if there exists a keyword in the text, to show I read the text.\n"
+    )
+    prompt_lst.append(
+        'This keyword is most likely wrapped in quotation marks like: "".\n'
+    )
+    prompt_lst.append(
+        "Note however that not all texts will include such a keyword. Here is the text:\n"
+    )
     prompt_lst.append(f"'{listing_text}'")
     prompt_lst.append("\nPlease only respond in JSON format like ")
     prompt_lst.append('{"keyword": "<your-keyword>"}, ')
-    prompt_lst.append("where your <your-keyword> is the keyword from the text that you found.")
+    prompt_lst.append(
+        "where your <your-keyword> is the keyword from the text that you found."
+    )
     prompt = "".join(prompt_lst)
 
     response = str(openai.generate(prompt)).strip()
@@ -127,7 +152,7 @@ def submit_app(config, logger):
         service_log_path = "chromedriver.log"
         service_args = ["--verbose"]
         driver = webdriver.Chrome(
-            "/usr/bin/chromedriver",
+            config["chromedriver_path"],
             options=chrome_options,
             service_args=service_args,
             service_log_path=service_log_path,
@@ -135,15 +160,18 @@ def submit_app(config, logger):
         # mainly when using screen
         driver.maximize_window()
         driver.get("https://www.wg-gesucht.de/nachricht-senden" + config["ref"])
-    except:
+    except Exception as e:
         logger.log(
             "Chrome crashed! You might be trying to run it without a screen in terminal?"
         )
-        driver.quit()
-        return False
+        raise e
 
-    # accept cookies button
-    click_button(driver, By.XPATH, "//*[contains(text(), 'Accept all')]")
+    # # accept cookies button
+    # click_button(driver, By.XPATH, "//*[contains(text(), 'Accept all')]")
+    # click_button(driver, By.XPATH, "//*[contains(text(), 'Akzeptieren')]")
+    # instead of accepting cookies, just remove cookie popup,
+    # as "Akzeptieren" doesn't show on headless Firefox on Linux for some reason
+    remove_cookies_popup(driver)
 
     # my account button
     click_button(driver, By.XPATH, "//*[contains(text(), 'Mein Konto')]")
@@ -161,6 +189,13 @@ def submit_app(config, logger):
     # login button
     click_button(driver, By.ID, "login_submit")
     logger.info("Logged in.")
+
+    remove_cookies_popup(driver)
+
+    # remove lightbox div that blocks attachments
+    divs_to_remove = driver.find_elements(By.XPATH, "//div[@class='lightbox']")
+    for div in divs_to_remove:
+        driver.execute_script("arguments[0].remove();", div)
 
     # occasionally wg-gesucht gives you advice on how to stay safe.
     try:
@@ -218,8 +253,8 @@ def submit_app(config, logger):
         with open(message_file, "r") as file:
             message = str(file.read())
         message = message.replace("receipient", config["user_name"].split(" ")[0])
-        if "keyword" in locals() and keyword != "":
-            message = f"{keyword}\n\n" + message
+        # if "keyword" in locals() and keyword != "":
+        #     message = f"{keyword}\n\n" + message
         text_area.send_keys(message)
     except:
         logger.info(f"{message_file} file not found!")
