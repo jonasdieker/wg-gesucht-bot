@@ -1,5 +1,6 @@
 import pprint
 import re
+from datetime import datetime
 
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
@@ -23,17 +24,39 @@ class ListingGetter:
         user_names = self.get_users()
         addresses, wg_types = self.get_address_wg()
         rental_lengths_months = self.get_rental_length_months()
+        rental_starts = self.get_rental_start()
 
         # ensure all list are the same length
-        lists = [refs, user_names, addresses, wg_types, rental_lengths_months]
+        lists = [
+            refs,
+            user_names,
+            addresses,
+            wg_types,
+            rental_lengths_months,
+            rental_starts,
+        ]
         it = iter(lists)
         the_len = len(next(it))
         if not all(len(l) == the_len for l in it):
             raise ValueError("Not all lists have the same length!")
 
         # write dict for all listings
-        for i, (ref, user_name, address, wg_type, rental_length_months) in enumerate(
-            zip(refs, user_names, addresses, wg_types, rental_lengths_months)
+        for i, (
+            ref,
+            user_name,
+            address,
+            wg_type,
+            rental_length_months,
+            rental_start,
+        ) in enumerate(
+            zip(
+                refs,
+                user_names,
+                addresses,
+                wg_types,
+                rental_lengths_months,
+                rental_starts,
+            )
         ):
             # skip promotes offers from letting agencies
             if "\n" in user_name:
@@ -45,7 +68,9 @@ class ListingGetter:
                 "address": address,
                 "wg_type": wg_type,
                 "rental_length_months": rental_length_months,
+                "rental_start": rental_start,
             }
+
             info_dict[i] = listing_dict
         return info_dict
 
@@ -88,6 +113,21 @@ class ListingGetter:
                 self._get_rental_length_months("-".join(start_end))
             )
         return rental_length_months
+
+    def get_rental_start(self):
+        rental_starts = list()
+        for listing in self.listings:
+            element = listing.find("div", {"class": "col-xs-5 text-center"})
+            text = element.getText()
+            start_end = [
+                part.strip() for part in re.split("-|\n", text) if part.strip() != ""
+            ]
+            rental_starts.append(self._get_rental_start(start_end[0]))
+        return rental_starts
+
+    @staticmethod
+    def _get_rental_start(date: str) -> datetime:
+        return datetime.strptime(date, "%d.%m.%Y")
 
     @staticmethod
     def _get_rental_length_months(date_range_str: str) -> int:

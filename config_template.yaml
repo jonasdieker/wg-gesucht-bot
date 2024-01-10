@@ -10,3 +10,8 @@ openai_credentials:
   api_key: ""
 run_headless: false
 min_listing_length_months: 6
+rental_start:
+  year: 2024
+  month: 3
+  day: 1
+  buffer_days: 14
