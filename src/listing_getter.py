@@ -1,6 +1,7 @@
 import pprint
 import re
 from datetime import datetime
+from typing import List
 
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
@@ -25,6 +26,7 @@ class ListingGetter:
         addresses, wg_types = self.get_address_wg()
         rental_lengths_months = self.get_rental_length_months()
         rental_starts = self.get_rental_start()
+        is_verifiziertes_unternehmen = self.check_verifiziertes_unternehmen()
 
         # ensure all list are the same length
         lists = [
@@ -48,6 +50,7 @@ class ListingGetter:
             wg_type,
             rental_length_months,
             rental_start,
+            verifiziertes_unternehmen,
         ) in enumerate(
             zip(
                 refs,
@@ -56,10 +59,14 @@ class ListingGetter:
                 wg_types,
                 rental_lengths_months,
                 rental_starts,
+                is_verifiziertes_unternehmen,
             )
         ):
             # skip promotes offers from letting agencies
             if "\n" in user_name:
+                continue
+            # skip sponsored offers
+            if verifiziertes_unternehmen:
                 continue
 
             listing_dict = {
@@ -124,6 +131,18 @@ class ListingGetter:
             ]
             rental_starts.append(self._get_rental_start(start_end[0]))
         return rental_starts
+
+    def check_verifiziertes_unternehmen(self) -> List[int]:
+        is_verifiziertes_unternehmen = list()
+        for listing in self.listings:
+            status = 0
+            element = listing.find("a", {"class": "campaign_click label_verified ml5"})
+            if element:
+                text = element.text.lower()
+                if "unternehmen" in text:
+                    status = 1
+            is_verifiziertes_unternehmen.append(status)
+        return is_verifiziertes_unternehmen
 
     @staticmethod
     def _get_rental_start(date: str) -> datetime:
