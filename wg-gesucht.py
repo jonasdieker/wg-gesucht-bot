@@ -1,5 +1,8 @@
+import datetime
 import logging
 import os.path
+import pprint
+import sys
 import time
 from subprocess import call
 
@@ -64,6 +67,27 @@ def main(config):
                 config["user_name"] = listing["user_name"]
                 config["address"] = listing["address"]
                 logger.info(f"Trying to send message to: {listing}")
+
+                # check rental start date
+                desired_rental_params = config["rental_start"]
+                desired_rental_start = datetime.datetime(
+                    desired_rental_params["year"],
+                    desired_rental_params["month"],
+                    desired_rental_params["day"],
+                )
+                earliest_allowable_start = desired_rental_start - datetime.timedelta(
+                    days=desired_rental_params["buffer_days"]
+                )
+                latest_allowable_start = desired_rental_start + datetime.timedelta(
+                    days=desired_rental_params["buffer_days"]
+                )
+                if (earliest_allowable_start > listing["rental_start"]) or (
+                    listing["rental_start"] > latest_allowable_start
+                ):
+                    logger.info(
+                        f"Rental start ({listing['rental_start']}) is outside of the desired start range. Skipping ..."
+                    )
+                    continue
 
                 # check rental length, if below min -> skip this listing
                 min_rental_length_months = config["min_listing_length_months"]

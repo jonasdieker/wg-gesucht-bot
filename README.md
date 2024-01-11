@@ -23,11 +23,11 @@ playwright install
 
 ### 2 Ensure `chromedriver` is installed
 
-Running `which chromedriver` should return a path like `/usr/local/bin/chromedriver`.
+Running `which chromedriver` should return a path like `/usr/bin/chromedriver`.
 
-If not simply run `sudo apt-get install chromedriver` if on Ubuntu.
+If not simply check this website: https://chromedriver.chromium.org/downloads
 
-Alternatively run `sudo apt-get install chromium-chromedriver` if on Raspberry OS.
+Note: Ensure that your Chrome version matches the chromedriver version.
 
 ### 3 Setup config file
 
@@ -40,12 +40,17 @@ messages:
 wg_gesucht_credentials:
   email: "my-email@email.com" # change
   password: "password1234" # change
-chromedriver_path: "/usr/local/bin/chromedriver" # change!
+chromedriver_path: "/usr/bin/chromedriver" # change!
 url: "" # change!
 openai_credentials:
   api_key: ""
 run_headless: false
 min_listing_length_months: 6
+rental_start:
+  year: 2024
+  month: 3
+  day: 1
+  buffer_days: 14
 
 ```
 
