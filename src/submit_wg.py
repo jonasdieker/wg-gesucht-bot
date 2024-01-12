@@ -9,6 +9,7 @@ from selenium.common.exceptions import (
     StaleElementReferenceException,
     TimeoutException,
 )
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -152,16 +153,16 @@ def submit_app(config, logger):
         service_log_path = "chromedriver.log"
         service_args = ["--verbose"]
         driver = webdriver.Chrome(
-            config["chromedriver_path"],
+            service=Service(executable_path=config["chromedriver_path"]),
             options=chrome_options,
             service_args=service_args,
             service_log_path=service_log_path,
         )
-        # mainly when using screen
-        driver.maximize_window()
+        if not config["run_headless"]:
+            driver.maximize_window()
         driver.get("https://www.wg-gesucht.de/nachricht-senden" + config["ref"])
     except Exception as e:
-        logger.log(
+        logger.info(
             "Chrome crashed! You might be trying to run it without a screen in terminal?"
         )
         raise e
