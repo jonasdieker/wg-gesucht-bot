@@ -1,5 +1,8 @@
-#!bin/bash
+#!/bin/bash
 
 source env/bin/activate
 
-python wg-gesucht.py
+while true
+    do
+        python wg-gesucht.py
+    done
